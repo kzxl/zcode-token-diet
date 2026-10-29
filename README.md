@@ -131,6 +131,12 @@ Edits take effect on the next tool call.
 
 The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); per-repository overrides go in `<repo>/.token-diet.json`. Files are deep-merged, the most specific wins.
 
+## Panel (experimental)
+
+The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: blocked calls, tokens kept out of context, tool calls and tool output for the last 24 hours. It costs no conversation tokens, and reopening it refreshes the numbers.
+
+This is the same `ui.surfaces` mechanism the official document plugins use. Third-party support is not documented, so treat it as experimental: if no **Token Diet** panel appears, nothing else is affected and `/saved` still works.
+
 ## Savings ledger
 
 Every blocked call and every MCP tool call is appended to `~/.zcode/token-diet/ledger.jsonl` (override the directory with `TOKEN_DIET_DATA`). `/saved [days]` summarises it. The ledger is local, append-only, rotates once at 5 MB, and an append costs about 0.35 ms. It records what the plugin saw, not provider-reported usage.

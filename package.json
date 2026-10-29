@@ -1,6 +1,6 @@
 {
   "name": "zcode-token-diet",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "ZCode plugin that keeps coding sessions from flooding their context with whole-file reads, unbounded greps and raw build logs.",

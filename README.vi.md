@@ -71,6 +71,12 @@ Các khoá mới: `search.respectGitignore` (mặc định `true`), `search.cach
 
 Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắng file user.
 
+## Panel (thử nghiệm)
+
+Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: số lần chặn, token giữ khỏi context, số tool call và lượng output trong 24 giờ. Không tốn token hội thoại; mở lại panel là số liệu được làm mới.
+
+Đây đúng là cơ chế `ui.surfaces` mà các plugin tài liệu chính thức dùng. Hỗ trợ cho plugin bên thứ ba chưa được tài liệu hoá, nên coi là thử nghiệm: nếu không thấy panel **Token Diet**, không ảnh hưởng gì khác và `/saved` vẫn dùng bình thường.
+
 ## Ledger tiết kiệm
 
 Mỗi lần guard chặn và mỗi lần gọi MCP tool được ghi vào `~/.zcode/token-diet/ledger.jsonl` (đổi thư mục bằng `TOKEN_DIET_DATA`). `/saved [số ngày]` tổng hợp lại. Ghi ledger tốn ~0,35 ms; file local, tự xoay vòng ở 5 MB.

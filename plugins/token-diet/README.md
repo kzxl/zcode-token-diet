@@ -12,6 +12,7 @@ Cuts the tokens a coding session spends on file dumps, unbounded greps and raw b
 | PostToolUse hook | Warns once when the same tool call runs three times with identical input |
 | Skill `token-diet` | The behaviour rules that make the model choose the cheap path |
 | Commands `/build`, `/diet`, `/saved` | Manual entry points: compact build, baseline report, savings ledger |
+| Panel `ui://token-diet/panel.html` | Experimental side-panel dashboard of the ledger (no conversation tokens) |
 
 Language coverage: the guard is language-agnostic; `search` scans any text file, decodes UTF-16 (BOM or sniffed) and honours `.gitignore`; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only; `run` covers npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest.
 

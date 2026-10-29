@@ -119,6 +119,14 @@ try {
   const savText = savings.result?.content?.[0]?.text || "";
   out.push(`diet savings -> ${savText.split("\n")[0] || "(empty)"} / ${savText.split("\n").find((l) => l.startsWith("Blocked")) || "no blocked line"}`);
 
+  const resList = await rpc("resources/list", {});
+  const resources = resList.result?.resources || [];
+  out.push(`resources/list -> ${resources.map((r) => r.uri).join(", ") || "(none)"}`);
+  const panel = await rpc("resources/read", { uri: "ui://token-diet/panel.html" });
+  const content = panel.result?.contents?.[0] || {};
+  out.push(`resources/read -> ${content.mimeType || "(no mime)"}, ${(content.text || "").length} chars`);
+  out.push(`panel contains title -> ${/<h1>Token Diet<\/h1>/.test(content.text || "")}`);
+
   const bad = await rpc("tools/call", { name: "nope", arguments: {} });
   out.push(`unknown tool -> isError=${bad.result?.isError}`);
 } catch (e) {

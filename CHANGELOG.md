@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Experimental MCP App panel (`ui://token-diet/panel.html`) declared through
+  `ui.surfaces`: blocked calls, tokens kept out, tool calls and tool output for
+  the last 24 hours. No conversation tokens; reopening refreshes it.
+- The MCP server now advertises `resources` and implements `resources/list` and
+  `resources/read`.
+
 ## 0.4.0
 
 - Local savings ledger: every blocked call and MCP tool call is appended to

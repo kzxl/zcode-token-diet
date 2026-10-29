@@ -1,6 +1,6 @@
 {
   "name": "token-diet",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
   "author": {
     "name": "local"
@@ -20,5 +20,20 @@
         "ZCODE_WORKSPACE_ROOT": "${ZCODE_PROJECT_DIR}"
       }
     }
+  },
+  "ui": {
+    "surfaces": [
+      {
+        "id": "token-diet",
+        "title": {
+          "en": "Token Diet",
+          "zh-CN": "上下文节食"
+        },
+        "icon": "gauge",
+        "server": "token-diet",
+        "resourceUri": "ui://token-diet/panel.html",
+        "availability": "session"
+      }
+    ]
   }
 }
