@@ -18,7 +18,7 @@ const write = (name, text, encoding = "utf8") => {
 write("a.py", "class Foo:\n    def bar(self):\n        return 1\n");
 write("b.go", "package main\n\ntype S struct {\n\tX int\n}\n\nfunc (s *S) Run() {\n}\n\nfunc main() {\n}\n");
 write("c.rs", "pub struct X;\n\nimpl X {\n    pub fn go(&self) -> u8 { 1 }\n}\n");
-write("d.ts", "export class A {\n}\n\nexport function f() {\n}\n\nexport const g = () => 1;\n");
+write("d.ts", "export class A {\n  run() {\n  }\n  async load(): Promise<void> {\n  }\n}\n\nexport function f() {\n}\n\nexport const g = () => 1;\n");
 write("e.sql", "CREATE PROCEDURE dbo.Sync\nAS\nBEGIN\nEND\n");
 write("f.sh", "function deploy() {\n  echo hi\n}\n");
 write("g.rb", "def hello\n  1\nend\n");
@@ -54,6 +54,8 @@ for (const [lang, needle] of [
   ["Rust struct", "pub struct X"],
   ["Rust fn", "pub fn go"],
   ["TS class", "export class A"],
+  ["TS method", "run()"],
+  ["TS typed method", "async load()"],
   ["TS function", "export function f"],
   ["TS arrow", "export const g"],
   ["SQL DDL", "CREATE PROCEDURE"],

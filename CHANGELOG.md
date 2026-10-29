@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- `outline` also recognises unmodified class and object methods in JS/TS
+  (`run() {`, `async load(): Promise<void> {`), which 0.2.0 missed.
+
 ## 0.2.0
 
 - Guard checks the value of `limit`, not just its presence: `limit=99999` on a
