@@ -2,12 +2,49 @@
 // Smoke test: talk MCP over stdio to the plugin server exactly as ZCode will.
 
 import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const server = path.join(root, "plugins", "token-diet", "scripts", "mcp-server.mjs");
+
+// Self-contained fixture so the smoke test runs on a fresh clone and in CI.
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-smoke-"));
+const sampleDir = path.join(tmp, "src");
+fs.mkdirSync(sampleDir);
+fs.writeFileSync(
+  path.join(sampleDir, "Sample.cs"),
+  [
+    "using System;",
+    "",
+    "namespace Smoke",
+    "{",
+    "    public interface IOrderService",
+    "    {",
+    "        string Get(int id);",
+    "    }",
+    "",
+    "    public class OrderService : IOrderService",
+    "    {",
+    "        public string Get(int id)",
+    "        {",
+    '            return "order-" + id;',
+    "        }",
+    "",
+    "        public void Cancel(int id)",
+    "        {",
+    "            var status = OrderStatus.Cancelled;",
+    "        }",
+    "    }",
+    "",
+    "    public enum OrderStatus { Draft, Active, Cancelled }",
+    "}",
+    "",
+  ].join("\n")
+);
 
 const child = spawn(process.execPath, [server], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
 let buf = "";
@@ -61,12 +98,12 @@ try {
   const schemaChars = JSON.stringify(tools).length;
   out.push(`tool schema size -> ${schemaChars} chars (~${Math.round(schemaChars / 4)} tokens)`);
 
-  const outline = await rpc("tools/call", { name: "outline", arguments: { path: path.join(root, "bench", "fixtures", "src") } });
+  const outline = await rpc("tools/call", { name: "outline", arguments: { path: sampleDir } });
   const oText = outline.result?.content?.[0]?.text || "";
   out.push(`outline -> ${oText.split("\n")[0]} (${oText.length} chars)`);
   out.push("  " + (oText.split("\n").slice(2, 5).join("\n  ") || "(empty)"));
 
-  const search = await rpc("tools/call", { name: "search", arguments: { pattern: "OrderStatus.Cancelled", path: path.join(root, "bench", "fixtures", "src"), maxMatches: 5 } });
+  const search = await rpc("tools/call", { name: "search", arguments: { pattern: "OrderStatus", path: sampleDir, maxMatches: 5 } });
   const sText = search.result?.content?.[0]?.text || "";
   out.push(`search -> ${sText.split("\n")[0]} (${sText.length} chars)`);
 
@@ -80,5 +117,8 @@ try {
   out.push(`FAILED: ${e.message}`);
 } finally {
   child.kill();
-  console.log(out.join("\n"));
+  fs.rmSync(tmp, { recursive: true, force: true });
+  const text = out.join("\n");
+  console.log(text);
+  if (/FAILED|Path not found|no tools|not runnable/i.test(text)) process.exitCode = 1;
 }
