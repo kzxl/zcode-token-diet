@@ -1,0 +1,24 @@
+{
+  "name": "token-diet",
+  "version": "0.1.2",
+  "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
+  "author": {
+    "name": "local"
+  },
+  "skills": "skills",
+  "agents": "agents",
+  "commands": "commands",
+  "hooks": "hooks/hooks.json",
+  "mcpServers": {
+    "token-diet": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.mjs"
+      ],
+      "env": {
+        "ZCODE_WORKSPACE_ROOT": "${ZCODE_PROJECT_DIR}"
+      }
+    }
+  }
+}

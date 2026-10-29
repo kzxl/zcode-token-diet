@@ -1,0 +1,8 @@
+node_modules/
+.token-diet/
+bench/fixtures/
+bench/results.json
+bench/run.log
+*.log
+.DS_Store
+Thumbs.db

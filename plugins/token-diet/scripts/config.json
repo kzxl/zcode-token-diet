@@ -1,0 +1,27 @@
+{
+  "guard": {
+    "enabled": true,
+    "read": {
+      "maxBytes": 131072,
+      "suggestLines": 200,
+      "mode": "deny"
+    },
+    "bash": {
+      "enabled": true,
+      "catMaxBytes": 131072,
+      "denyRecursiveGrep": true,
+      "denyPatchLog": true,
+      "denyVerboseBuild": false
+    }
+  },
+  "loopBreaker": {
+    "enabled": true,
+    "threshold": 3
+  },
+  "build": {
+    "toolchain": "auto",
+    "msbuildPath": "",
+    "configuration": "Debug",
+    "platform": "Any CPU"
+  }
+}

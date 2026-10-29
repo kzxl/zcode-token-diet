@@ -1,0 +1,30 @@
+# Context budget rules (optional, user scope)
+
+Paste this into `~/.zcode/AGENTS.md` to make the cheap path the default even in
+sessions where the `token-diet` skill is not selected.
+
+## Reading files
+
+- Before reading an unfamiliar source file, get its structure first: the
+  `token-diet` outline tool, or `grep -n "class \|void \|public " file`.
+- Never read a source file over 200 lines in one call. Use `limit` and `offset`.
+- Never `cat`/`type`/`Get-Content` a whole source file or log into the conversation.
+
+## Searching
+
+- Use the `token-diet` search tool for cross-repo questions.
+- If you must use grep: `grep -rn -m 5 -l` or pipe through `head`. Never a bare `grep -r`.
+- For questions spanning more than five files, dispatch the `token-diet:scout` agent
+  and use its `file:line` pointers instead of reading the files yourself.
+
+## Building and testing
+
+- Use the `token-diet` build tool, not `dotnet build` with default verbosity. It picks MSBuild for
+  legacy .NET Framework solutions (ERP) and `dotnet build` for SDK-style projects automatically.
+- If the repo has its own build skill (`compile_solution` for ERP), pass its configuration and
+  platform to the build tool so the output matches.
+- Quote only the error and warning lines; the full log stays at `.token-diet/build.log`.
+
+## When a tool call is blocked
+
+Read the reason and follow it. Do not retry the same call with the same input.

@@ -1,0 +1,153 @@
+#!/usr/bin/env node
+// Minimal MCP stdio server exposing four compact-context tools.
+
+import readline from "node:readline";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { outline, search } from "./lib/scan.mjs";
+import { runBuild } from "./lib/build.mjs";
+import { dietReport } from "./lib/diet.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+let config = {};
+try {
+  config = JSON.parse(fs.readFileSync(path.join(here, "config.json"), "utf8"));
+} catch {}
+let version = "0.1.0";
+try {
+  version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
+} catch {}
+
+const TOOLS = [
+  {
+    name: "outline",
+    description:
+      "List type and method signatures with line numbers for a source file or directory. Call before Read on files over 200 lines.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File or directory" },
+        maxFiles: { type: "number", description: "Directory mode: files to show, default 10" },
+        maxPerFile: { type: "number", description: "Symbols per file, default 60" },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "search",
+    description:
+      "Search text or /regex/ under a path. Returns file:line with 2 context lines, capped at 8 KB. Use instead of grep -r.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pattern: { type: "string", description: "Literal text or /regex/flags" },
+        path: { type: "string", description: "File or directory, default cwd" },
+        maxMatches: { type: "number", description: "Default 30, max 200" },
+        context: { type: "number", description: "Context lines each side, default 2" },
+      },
+      required: ["pattern"],
+    },
+  },
+  {
+    name: "build",
+    description:
+      "Build the .NET solution (MSBuild for legacy .NET Framework, dotnet for SDK-style) and return only errors plus grouped warnings. Use instead of dotnet build.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project: { type: "string", description: "Solution or project path; auto-detected if omitted" },
+        toolchain: { type: "string", description: "auto (default), msbuild, or dotnet" },
+        configuration: { type: "string", description: "Default Debug" },
+        platform: { type: "string", description: "e.g. \"Any CPU\"; empty for the project default" },
+        tail: { type: "number", description: "Summary lines when clean, default 5" },
+      },
+    },
+  },
+  {
+    name: "diet",
+    description:
+      "Report which installed skills and plugins consume context tokens every session, and what to disable.",
+    inputSchema: { type: "object", properties: {} },
+  },
+];
+
+function send(obj) {
+  process.stdout.write(JSON.stringify(obj) + "\n");
+}
+
+function result(id, payload) {
+  send({ jsonrpc: "2.0", id, result: payload });
+}
+
+function error(id, code, message) {
+  send({ jsonrpc: "2.0", id, error: { code, message } });
+}
+
+async function callTool(name, args) {
+  const a = args || {};
+  switch (name) {
+    case "outline":
+      return outline(a.path || ".", a);
+    case "search":
+      return search(a);
+    case "build":
+      return runBuild(a, config);
+    case "diet":
+      return dietReport(process.env.ZCODE_WORKSPACE_ROOT || process.cwd());
+    default:
+      throw new Error(`unknown tool: ${name}`);
+  }
+}
+
+const rl = readline.createInterface({ input: process.stdin, terminal: false });
+
+rl.on("line", async (line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+  let msg;
+  try {
+    msg = JSON.parse(trimmed);
+  } catch {
+    return;
+  }
+
+  const { id, method, params } = msg;
+
+  if (method === "initialize") {
+    result(id, {
+      protocolVersion: params?.protocolVersion || "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "token-diet", version },
+    });
+    return;
+  }
+
+  if (!method || method.startsWith("notifications/")) return;
+
+  if (method === "ping") {
+    result(id, {});
+    return;
+  }
+
+  if (method === "tools/list") {
+    result(id, { tools: TOOLS });
+    return;
+  }
+
+  if (method === "tools/call") {
+    const name = params?.name;
+    try {
+      const out = await callTool(name, params?.arguments);
+      result(id, { content: [{ type: "text", text: out.text }], isError: false });
+    } catch (e) {
+      result(id, {
+        content: [{ type: "text", text: `token-diet ${name} failed: ${e.message}` }],
+        isError: true,
+      });
+    }
+    return;
+  }
+
+  error(id ?? null, -32601, `Method not found: ${method}`);
+});
