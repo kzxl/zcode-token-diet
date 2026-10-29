@@ -67,6 +67,8 @@ check("cat small only -> allow", run(guard, bash(`cat "${small}"`)).out === "");
 check("minified 49 KB under byte cap -> deny", run(guard, read(minified)).out.includes("deny"));
 check("minified with explicit limit=99999 -> deny", run(guard, read(minified, { limit: 99999 })).out.includes("deny"));
 check("ReadAllText large file -> deny", run(guard, bash(`[IO.File]::ReadAllText("${big}")`)).out.includes("deny"));
+check("quoted mention of git log -p -> allow", run(guard, bash('git commit -m "docs: mention git log -p"')).out === "");
+check("heredoc mentioning grep -rn -> allow", run(guard, bash("node - <<'EOF'\nconst s = 'grep -rn x';\nEOF")).out === "");
 
 console.log("guard: robustness");
 check("invalid JSON -> silent allow", run(guard, "not json").out === "");

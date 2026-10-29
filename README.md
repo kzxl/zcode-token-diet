@@ -133,7 +133,7 @@ The shipped `scripts/config.json` lives in the installed plugin and is replaced 
 
 ## Panel (experimental)
 
-The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: blocked calls, tokens kept out of context, tool calls and tool output for the last 24 hours. It costs no conversation tokens, and reopening it refreshes the numbers.
+The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: tokens kept out of context as the headline, the average per file block, blocks, distinct files, tool calls and tool output for the last 24 hours, plus the most recent blocks with their size. It costs no conversation tokens, and reopening it refreshes the numbers and the update time.
 
 ZCode treats plugin surfaces as **manually opened panels**: it does not auto-open them, even when a tool result requests inline display. The official document plugins behave the same way. Open the **Token Diet** panel once from the side panel; after that it is one click, and it costs no conversation tokens. `/saved` always returns the text report, so nothing is lost if the panel is closed. The inline metadata is kept for hosts that support it.
 
@@ -207,6 +207,7 @@ Deliberately deferred: on-disk index (cold search is already ≤220 ms), SQLite 
 - The PostToolUse warning fires once per fingerprint, not continuously.
 - Build compaction depends on the log. Small clean builds barely shrink.
 - `.gitignore` support covers the common subset (anchoring, negation, `*`, `**`, `?`, directory-only). Explicitly targeting an ignored subdirectory still searches it.
+- The guard ignores quoted strings and heredoc bodies when matching shell patterns. The trade-off favours not blocking legitimate commits and scripts; a command hidden inside `bash -c "..."` is not inspected.
 - UTF-16 without a BOM is inferred from NUL-byte parity; unusual files may be classified as binary.
 - `run` uses fixed commands per ecosystem. It cannot run an arbitrary command, and a project whose test script is named unusually needs Bash.
 - The plugin cannot reduce the baseline cost of your other skills and plugins — use `/diet` and disable what you do not use.

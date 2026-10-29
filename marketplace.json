@@ -8,7 +8,7 @@
     {
       "name": "token-diet",
       "source": "./plugins/token-diet",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
       "displayName": "Token Diet",
       "displayName_i18n": {

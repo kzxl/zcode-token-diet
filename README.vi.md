@@ -73,7 +73,7 @@ Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắn
 
 ## Panel (thử nghiệm)
 
-Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: số lần chặn, token giữ khỏi context, số tool call và lượng output trong 24 giờ. Không tốn token hội thoại; mở lại panel là số liệu được làm mới.
+Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: token giữ khỏi context là số chính, kèm trung bình mỗi file, số lần chặn, số file, tool call, lượng output trong 24 giờ và các lần chặn gần nhất kèm kích thước. Không tốn token hội thoại; mở lại panel là số liệu và thời điểm cập nhật được làm mới.
 
 ZCode coi surface của plugin là **panel mở thủ công**: nó không tự mở, kể cả khi kết quả tool yêu cầu inline. Plugin tài liệu chính thức cũng vậy. Mở panel **Token Diet** một lần từ panel bên phải; sau đó chỉ tốn một click và không tốn token hội thoại. `/saved` luôn trả báo cáo text, nên không mất gì khi panel đóng.
 
@@ -101,6 +101,7 @@ Tạm hoãn: index trên đĩa (cold search đã ≤220 ms), tích hợp SQLite 
 - `.gitignore` chỉ hỗ trợ tập con phổ biến; trỏ thẳng vào thư mục bị ignore vẫn tìm được.
 - UTF-16 không BOM được suy đoán từ vị trí byte NUL; file lạ có thể bị coi là nhị phân.
 - `run` dùng lệnh cố định, không chạy lệnh tuỳ ý.
+- Guard bỏ qua chuỗi trong ngoặc và nội dung heredoc khi so khớp, nên không chặn nhầm commit hay script; đổi lại lệnh giấu trong `bash -c "..."` không được kiểm tra.
 - Mỗi hook tốn ~70 ms trên Windows do spawn process; session 50 tool call tốn 3,5–7 giây chờ.
 - Với repo ít match, tiết kiệm chỉ còn ~36% vì 2 dòng context mỗi match tốn hơn chính dòng match.
 - Ledger đo bytes bị chặn, không phải token provider báo.

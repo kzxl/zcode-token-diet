@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.3
+
+- Panel redesign: headline tokens kept out of context with a per-file average;
+  compact blocks/files/tool calls/tool output; labelled pattern denials instead
+  of a meaningless 0; update time; the per-tool list removed as noise.
+- Guard ignores heredoc bodies and quoted strings when matching shell patterns,
+  so a commit message mentioning a patch log command is not blocked.
+
 ## 0.5.2
 
 - The panel asks for inline display (`_meta.ui.showInline` and

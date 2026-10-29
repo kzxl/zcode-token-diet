@@ -62,6 +62,17 @@ function deny(reason, meta = {}) {
 }
 
 // Flatten every path-looking argument, not just the last one.
+// Command text inside a heredoc body or a quoted string is data, not a command.
+// Matching raw shell text blocked commits and scripts that merely mentioned
+// "git log -p" or "grep -rn".
+function stripHeredocs(command) {
+  return command.replace(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s*(?:\n|$))/g, " ");
+}
+
+function stripQuoted(s) {
+  return s.replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
+}
+
 function pathArgs(command) {
   const tokens = command.match(/"[^"]+"|'[^']+'|\S+/g) || [];
   const out = [];
@@ -152,20 +163,26 @@ async function main() {
     if (b.enabled === false) return;
     const cmd = String(input.command || "").trim();
     if (!cmd) return;
+    const noHeredoc = stripHeredocs(cmd);
+    const execLike = stripQuoted(noHeredoc);
 
     if (b.denyRecursiveGrep !== false) {
-      const recursiveGrep = /\bgrep\s+(-\S*r\S*|--recursive)\b/.test(cmd);
-      const recursiveFindstr = /\bfindstr\s+\/s\b/i.test(cmd) && !/\/m\b/i.test(cmd);
-      const rg = /\brg\b/.test(cmd);
+      const recursiveGrep = /\bgrep\s+(-\S*r\S*|--recursive)\b/.test(execLike);
+      const recursiveFindstr = /\bfindstr\s+\/s\b/i.test(execLike) && !/\/m\b/i.test(execLike);
+      const rg = /\brg\b/.test(execLike);
       const bounded =
-        /\bgrep\s+-\S*l/.test(cmd) ||
-        /(?:^|\s)-[a-zA-Z]*l[a-zA-Z]*(?=\s|$)/.test(cmd) ||
-        /--files-with-matches/.test(cmd) ||
-        /\s-m\s*\d/.test(cmd) ||
-        /--max-count/.test(cmd) ||
-        /\|\s*head\b/.test(cmd);
+        /\bgrep\s+-\S*l/.test(execLike) ||
+        /(?:^|\s)-[a-zA-Z]*l[a-zA-Z]*(?=\s|$)/.test(execLike) ||
+        /--files-with-matches/.test(execLike) ||
+        /\s-m\s*\d/.test(execLike) ||
+        /--max-count/.test(execLike) ||
+        /\|\s*head\b/.test(execLike);
       const rgBounded =
-        /\s-l\b/.test(cmd) || /--files-with-matches/.test(cmd) || /\s-m\s*\d/.test(cmd) || /--max-count/.test(cmd) || /\|\s*head\b/.test(cmd);
+        /\s-l\b/.test(execLike) ||
+        /--files-with-matches/.test(execLike) ||
+        /\s-m\s*\d/.test(execLike) ||
+        /--max-count/.test(execLike) ||
+        /\|\s*head\b/.test(execLike);
       if (recursiveGrep && !bounded) {
         deny(
           `token-diet blocked an unbounded recursive grep. Add -m 5 or -l, pipe through head, ` +
@@ -182,13 +199,13 @@ async function main() {
     }
 
     if (b.denyPatchLog !== false) {
-      if (/\bgit\s+log\b/.test(cmd) && /(\s-p\b|--patch)/.test(cmd) && !/(-n\s*\d|--max-count)/.test(cmd)) {
+      if (/\bgit\s+log\b/.test(execLike) && /(\s-p\b|--patch)/.test(execLike) && !/(-n\s*\d|--max-count)/.test(execLike)) {
         deny(`token-diet blocked "git log --patch" without a limit. Add -n 20, or use --stat for a summary.`, { event: "git-log" });
       }
     }
 
     if (b.denyVerboseBuild === true) {
-      if (/\b(dotnet\s+build|msbuild)\b/.test(cmd) && !/(-v:\s*[qm]\b|--verbosity\s+(quiet|minimal))/.test(cmd)) {
+      if (/\b(dotnet\s+build|msbuild)\b/.test(execLike) && !/(-v:\s*[qm]\b|--verbosity\s+(quiet|minimal))/.test(execLike)) {
         deny(
           `token-diet: verbose build logs are huge. Use the token-diet "build" tool (returns only errors and grouped warnings), ` +
             `or add -v:q.`,
@@ -197,9 +214,9 @@ async function main() {
       }
     }
 
-    if (/\b(cat|type|more|Get-Content|gc)\b/i.test(cmd)) {
+    if (/\b(cat|type|more|Get-Content|gc)\b/i.test(noHeredoc)) {
       const maxBytes = b.catMaxBytes ?? 131072;
-      for (const p of pathArgs(cmd)) {
+      for (const p of pathArgs(noHeredoc)) {
         const full = resolveExisting(p, ev.cwd || process.cwd());
         const size = fileSize(full);
         const budget = effectiveMax(full, size, maxBytes);
@@ -217,7 +234,7 @@ async function main() {
     }
 
     // PowerShell: [IO.File]::ReadAllText("...") bypasses Get-Content wording.
-    const readAll = cmd.match(/\bReadAllText\(\s*['"]([^'"]+)['"]/i);
+    const readAll = noHeredoc.match(/\bReadAllText\(\s*['"]([^'"]+)['"]/i);
     if (readAll) {
       const full = resolveExisting(readAll[1], ev.cwd || process.cwd());
       const size = fileSize(full);

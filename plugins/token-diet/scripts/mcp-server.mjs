@@ -15,6 +15,10 @@ import { appendLedger, readLedger, savingsReport } from "./lib/ledger.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const config = loadConfig(here, process.cwd());
 const PANEL_URI = "ui://token-diet/panel.html";
+let version = "0.1.0";
+try {
+  version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
+} catch {}
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -34,18 +38,25 @@ function panelHtml() {
   const tools = entries.filter((e) => e.t === "tool");
   const blocked = denies.reduce((n, e) => n + (e.bytes || 0), 0);
   const outChars = tools.reduce((n, e) => n + (e.outChars || 0), 0);
-
-  const byTool = new Map();
-  for (const t of tools) byTool.set(t.tool, (byTool.get(t.tool) || 0) + 1);
-  const toolRows = [...byTool.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, count]) => `<li><span>${esc(name)}</span><b>${count}</b></li>`)
-    .join("");
-  const deniedRows = denies
-    .slice(-5)
-    .reverse()
-    .map((d) => `<li><span>${esc(d.file || d.event)}</span><b>${Math.round((d.bytes || 0) / 1024)} KB</b></li>`)
+  const sized = denies.filter((d) => (d.bytes || 0) > 0);
+  const avg = sized.length ? blocked / sized.length : 0;
+  const files = new Set(denies.map((d) => d.file).filter(Boolean)).size;
+  const recent = [...denies].reverse().slice(0, 3);
+  const updated = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const EVENT_LABEL = {
+    grep: "recursive grep",
+    "git-log": "git log -p",
+    build: "verbose build",
+    read: "Read",
+    cat: "cat",
+    readall: "ReadAllText",
+  };
+  const rows = recent
+    .map((d) => {
+      const label = d.file || EVENT_LABEL[d.event] || d.event || "block";
+      const size = d.bytes > 0 ? fmtTokens(d.bytes) : "—";
+      return `<li><span title="${esc(label)}">${esc(label)}</span><b>${size}</b></li>`;
+    })
     .join("");
 
   return `<!doctype html>
@@ -56,42 +67,45 @@ function panelHtml() {
 @media (prefers-color-scheme:dark){:root{--fg:#e8e8ee;--mut:#9a9aa8;--bg:#1b1b1f;--card:#24242b;--line:#33333d;--accent:#7fd3a6}}
 *{box-sizing:border-box}html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:14px}
-h1{font-size:15px;margin:0 0 2px}
-.sub{color:var(--mut);font-size:11px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
-.card .k{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-.card .v{font-size:22px;font-weight:650;margin-top:2px}
-.card .u{font-size:11px;color:var(--mut)}
-h2{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:14px 0 6px}
+h1{font-size:15px;margin:0}
+.sub{color:var(--mut);font-size:11px;margin:2px 0 14px}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.hero .v{font-size:32px;font-weight:680;letter-spacing:-.02em;color:var(--accent);line-height:1.1}
+.hero .k{font-size:12px;margin-top:2px}
+.hero .u{color:var(--mut);font-size:11px;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.card .k{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:18px;font-weight:640;margin-top:1px}
+.card .u{font-size:10.5px;color:var(--mut)}
+h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:0 0 6px}
 ul{list-style:none;margin:0;padding:0}
-li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--line)}
+li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
 li:last-child{border-bottom:0}
 li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-li b{flex:none;color:var(--accent)}
-.empty{color:var(--mut);font-size:12px;padding:6px 0}
-.foot{margin-top:14px;color:var(--mut);font-size:10.5px}
+li b{flex:none;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+.empty{color:var(--mut);font-size:12px;padding:4px 0}
+.foot{margin-top:14px;padding-top:10px;border-top:1px solid var(--line);color:var(--mut);font-size:10.5px}
 </style></head>
 <body>
 <h1>Token Diet</h1>
-<div class="sub">Last 24 hours · local estimate · reopen to refresh</div>
-<div class="grid">
-  <div class="card"><div class="k">Blocked</div><div class="v">${denies.length}</div><div class="u">calls</div></div>
-  <div class="card"><div class="k">Kept out</div><div class="v">${fmtTokens(blocked)}</div><div class="u">tokens (upper bound)</div></div>
-  <div class="card"><div class="k">Tool calls</div><div class="v">${tools.length}</div><div class="u">through token-diet</div></div>
-  <div class="card"><div class="k">Tool output</div><div class="v">${fmtTokens(outChars)}</div><div class="u">tokens returned</div></div>
+<div class="sub">Last 24 hours · updated ${updated}</div>
+<div class="hero">
+  <div class="v">${fmtTokens(blocked)}</div>
+  <div class="k">tokens kept out of context</div>
+  <div class="u">${denies.length} blocked call${denies.length === 1 ? "" : "s"}${sized.length ? ` · avg ${fmtTokens(avg)} per file block` : ""} · upper bound</div>
 </div>
-<h2>Recent blocked files</h2>
-${deniedRows ? `<ul>${deniedRows}</ul>` : '<div class="empty">Nothing blocked yet.</div>'}
-<h2>Tools used</h2>
-${toolRows ? `<ul>${toolRows}</ul>` : '<div class="empty">No tool calls recorded yet.</div>'}
-<div class="foot">Ledger: ~/.zcode/token-diet/ledger.jsonl · provider usage is not included</div>
+<div class="grid">
+  <div class="card"><div class="k">Blocks</div><div class="v">${denies.length}</div></div>
+  <div class="card"><div class="k">Files</div><div class="v">${files}</div></div>
+  <div class="card"><div class="k">Tool calls</div><div class="v">${tools.length}</div></div>
+  <div class="card"><div class="k">Tool output</div><div class="v">${fmtTokens(outChars)}</div><div class="u">tokens</div></div>
+</div>
+<h2>Blocked recently</h2>
+${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period.</div>'}
+<div class="foot">Local estimate · provider usage is not included · reopen to refresh</div>
 </body></html>`;
 }
-let version = "0.2.0";
-try {
-  version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
-} catch {}
 
 const TOOLS = [
   {
