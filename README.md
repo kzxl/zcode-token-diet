@@ -151,7 +151,7 @@ Nine repositories from a mixed-language workspace, one query per repo, cold cach
 | Mobile | Kotlin | 66 | 4,830 | 2,355 | 51.2% | 28 |
 | Recoit | Python | 27 | 3,013 | 1,910 | 36.6% | 9 |
 
-The low rows are the honest ones: when a repo has few matches, the 30-match cap never binds and two context lines per match dominate. Cold search stays under 220 ms on every repo, so an on-disk index is not worth its complexity at this scale.
+The low rows are the honest ones: when a repo has few matches, the 30-match cap never binds and two context lines per match dominate. Cold search stays under 220 ms on every repo, so an on-disk index is not worth its complexity at this scale. The raw run is in [`bench/repo-after.json`](bench/repo-after.json).
 
 Hook overhead on Windows: **70 ms per guarded call**, almost entirely Node process spawn; the ledger append is 0.35 ms. A session with 50 tool calls pays roughly 3.5–7 seconds of hook latency.
 
@@ -181,6 +181,18 @@ On Windows, prefix with the variables in PowerShell (`$env:TOKEN_DIET_REAL_SLN="
 - The guard denies, it never approves. Permission prompts still happen.
 - The MCP server is a single Node process; `outline`/`search` only read, `build` and `run` execute the project's own build/test commands, `diet` only reads `~/.zcode` metadata.
 - Nothing leaves your machine.
+
+## Roadmap
+
+Detailed plan and acceptance criteria: [ROADMAP.md](ROADMAP.md). Next five, in order:
+
+1. Reduce hook scope: `PostToolUse` on `Bash` only — removes ~70 ms from every `Read`.
+2. Adaptive context: one line when a search has 10 or fewer matches — raises sparse-repo savings from 36–54% to roughly 60–70%.
+3. Legacy encoding fallback, only for files that fail UTF-8 — covers the 50 affected ERP files.
+4. Outline quality audit on 20 files per language before adding outline features.
+5. Tune thresholds from `/saved` data after a week of real use.
+
+Deliberately deferred: on-disk index (cold search is already ≤220 ms), SQLite usage integration, tree-sitter, bundled ripgrep.
 
 ## Limitations
 

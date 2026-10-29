@@ -56,3 +56,7 @@ The shipped `scripts/config.json` is replaced when the plugin updates. Put perso
 ## Ledger
 
 Blocked calls and MCP tool calls are appended to `~/.zcode/token-diet/ledger.jsonl` (override with `TOKEN_DIET_DATA`). `/saved [days]` summarises it.
+
+## Roadmap
+
+See [ROADMAP.md](../../ROADMAP.md) in the repository for the measurement-driven next steps and the deliberately deferred items.

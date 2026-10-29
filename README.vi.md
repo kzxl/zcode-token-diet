@@ -75,6 +75,18 @@ Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắn
 
 Mỗi lần guard chặn và mỗi lần gọi MCP tool được ghi vào `~/.zcode/token-diet/ledger.jsonl` (đổi thư mục bằng `TOKEN_DIET_DATA`). `/saved [số ngày]` tổng hợp lại. Ghi ledger tốn ~0,35 ms; file local, tự xoay vòng ở 5 MB.
 
+## Định hướng tiếp theo
+
+Chi tiết và tiêu chí nghiệm thu: [ROADMAP.md](ROADMAP.md). Năm việc kế tiếp, theo thứ tự:
+
+1. Thu hẹp hook: `PostToolUse` chỉ cho `Bash` — bỏ ~70 ms mỗi lần `Read`.
+2. Context thích ứng: 1 dòng khi search có ≤10 match — đưa repo ít match từ 36–54% lên khoảng 60–70%.
+3. Fallback encoding legacy, chỉ khi UTF-8 decode lỗi — xử lý 50 file bị ảnh hưởng trong ERP.
+4. Đo chất lượng outline trên 20 file mỗi ngôn ngữ trước khi thêm tính năng outline.
+5. Tinh chỉnh ngưỡng từ dữ liệu `/saved` sau một tuần dùng thật.
+
+Tạm hoãn: index trên đĩa (cold search đã ≤220 ms), tích hợp SQLite usage DB, tree-sitter, bundle ripgrep.
+
 ## Giới hạn
 
 - Không tiết kiệm gì trong hội thoại ngắn.
