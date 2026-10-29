@@ -243,7 +243,9 @@ export function collectFiles(target, exts, opts = {}) {
   const key = `${root}|${respect}|${allow ? [...allow].sort().join(",") : "*"}`;
   const now = Date.now();
   const cached = listCache.get(key);
-  if (cached && now - cached.at <= ttl) return { files: cached.files };
+  // A non-positive TTL means "always rebuild"; without the explicit check a
+  // second call in the same millisecond would still hit the cache.
+  if (cached && ttl > 0 && now - cached.at <= ttl) return { files: cached.files };
 
   const files = walk(root, [], [], allow, { respectGitignore: respect, limit: opts.limit ?? 20000 });
   listCache.set(key, { at: now, files });
