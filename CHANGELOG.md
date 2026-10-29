@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.4
+
+- The panel now speaks the MCP Apps handshake: it sends `ui/initialize` to the
+  host, waits for the response, then sends `ui/notifications/initialized` and a
+  size notification. Without it the host timed out with
+  "plugin-ui: ui/initialize handshake timed out".
+
 ## 0.5.3
 
 - Panel redesign: headline tokens kept out of context with a per-file average;

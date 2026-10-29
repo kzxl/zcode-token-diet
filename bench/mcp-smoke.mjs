@@ -129,6 +129,7 @@ try {
   const content = panel.result?.contents?.[0] || {};
   out.push(`resources/read -> ${content.mimeType || "(no mime)"}, ${(content.text || "").length} chars`);
   out.push(`panel contains title -> ${/<h1>Token Diet<\/h1>/.test(content.text || "")}`);
+  out.push(`panel handshake -> ${/ui\/initialize/.test(content.text || "") && /ui\/notifications\/initialized/.test(content.text || "")}`);
 
   const bad = await rpc("tools/call", { name: "nope", arguments: {} });
   out.push(`unknown tool -> isError=${bad.result?.isError}`);

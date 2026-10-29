@@ -104,6 +104,42 @@ li b{flex:none;color:var(--accent);font-weight:600;font-variant-numeric:tabular-
 <h2>Blocked recently</h2>
 ${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period.</div>'}
 <div class="foot">Local estimate · provider usage is not included · reopen to refresh</div>
+<script>
+(function () {
+  var pending = {}, nextId = 1, target = window.parent;
+  function send(msg) { try { target.postMessage(msg, "*"); } catch (e) {} }
+  window.addEventListener("message", function (e) {
+    var m = e.data;
+    if (!m || typeof m !== "object" || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) p.reject(new Error(m.error.message || "error")); else p.resolve(m.result);
+    }
+  });
+  function request(method, params) {
+    return new Promise(function (resolve, reject) {
+      var id = nextId++;
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params || {} });
+      setTimeout(function () { if (pending[id]) { delete pending[id]; reject(new Error("timeout")); } }, 8000);
+    });
+  }
+  function sizeChanged() {
+    send({ jsonrpc: "2.0", method: "ui/notifications/size-changed", params: {
+      width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight
+    }});
+  }
+  request("ui/initialize", {
+    appInfo: { name: "token-diet", version: "${version}" },
+    appCapabilities: {},
+    protocolVersion: "2025-11-21"
+  }).then(function () {
+    send({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} });
+    sizeChanged();
+    window.addEventListener("resize", sizeChanged);
+  }).catch(function () {});
+})();
+</script>
 </body></html>`;
 }
 
