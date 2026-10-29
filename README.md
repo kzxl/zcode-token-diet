@@ -34,7 +34,7 @@ Token estimates use 3.6 chars/token for code and 4 for logs. Rows marked *real* 
 
 The last row is the honest floor: when the build already runs with `-v:q` and fails early, there is little to compress. The plugin earns its keep on large files, repo-wide searches, and warning-heavy builds.
 
-Its own permanent cost is about **600 tokens per session** (4 MCP tool schemas ≈ 447, skill and agent descriptions ≈ 154). One blocked 38k-token read pays for a month of that.
+Its own permanent cost is about **730 tokens per session** (5 MCP tool schemas ≈ 578, skill and agent descriptions ≈ 154). One blocked 38k-token read pays for a month of that.
 
 See [`bench/RESULTS.md`](bench/RESULTS.md) for the generated report.
 
@@ -49,9 +49,9 @@ The guard also never auto-approves a tool. It can only deny with a reason, so yo
 | Layer | Coverage |
 |---|---|
 | Guard | Any language. It judges file size and shell commands, not syntax. |
-| `search` | Any text file. Binaries and NUL bytes are skipped; UTF-16LE/BE sources are decoded. Optional `search.extensions` narrows the scan. |
+| `search` | Any text file. Binaries and NUL bytes are skipped; UTF-16LE/BE sources are decoded, with or without a BOM. Obeys `.gitignore` and caches decoded text between calls. Optional `search.extensions` narrows the scan. |
 | `outline` | Heuristic declaration detection for C/C++/C#/Java/Kotlin, JS/TS, Python, Ruby, PHP, Go, Rust, Swift, Scala, Dart, shell, Lua, Perl and SQL. It is a regex, not a parser. |
-| `build` | .NET only (MSBuild or `dotnet`). For other ecosystems use their own build command; the tool says what it cannot do instead of guessing. |
+| `build` / `run` | `build` is .NET only (MSBuild or `dotnet`). `run` covers npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest with fixed commands per ecosystem. |
 | Skill, agent, `AGENTS.md` sample | Language-agnostic. |
 
 ## Components
@@ -61,6 +61,7 @@ The guard also never auto-approves a tool. It can only deny with a reason, so yo
 | MCP tool `outline` | Type and method signatures with line numbers for a file or directory. Replaces a blind read. |
 | MCP tool `search` | Literal or `/regex/` search, returns `file:line` plus 2 context lines, capped at 30 matches / 8 KB. |
 | MCP tool `build` | Runs MSBuild or `dotnet build`, keeps the full log in `.token-diet/build.log`, returns errors plus warnings grouped by code. |
+| MCP tool `run` | Build/test/lint for npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest, with per-ecosystem error extraction. |
 | MCP tool `diet` | Reports which installed skills and MCP schemas cost context every session. |
 | Agent `token-diet:scout` | Read-only subagent for questions spanning many files. Returns `file:line` pointers, never code. |
 | Hook `PreToolUse` | Blocks unbound `Read` of files over 128 KB, `cat`/`Get-Content` of large files, `grep -r` without `-l`/`-m`, `git log -p` without `-n`. |
@@ -96,6 +97,10 @@ The plugin ships a skill, so it activates when selected. To apply the rules even
 
 MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visual Studio 2022/18 installs, then `vswhere`. If no MSBuild is found for a legacy project, the tool says so and refuses to guess — `dotnet build` on .NET Framework projects produces misleading errors.
 
+### Other ecosystems
+
+`run` detects the manifest (package.json, Cargo.toml, go.mod, pom.xml, build.gradle, Makefile, pyproject.toml/pytest.ini), runs `build`, `test` or `lint` with fixed commands, and compacts the log using that ecosystem's error markers (tsc, rustc, go, pytest, npm, maven, gradle). `dryRun: true` shows the command without running it. It never accepts arbitrary shell, so it cannot become a second Bash tool.
+
 ## Configuration
 
 `plugins/token-diet/scripts/config.json`:
@@ -117,6 +122,10 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 | `build.configuration` | `Debug` | Passed to both toolchains. |
 | `build.platform` | `Any CPU` | MSBuild only; SDK builds use their default. |
 | `search.extensions` | `[]` | Empty scans every text file; a list like `[".cs",".ts"]` narrows it. |
+| `search.respectGitignore` | `true` | Honour `.gitignore` files at or below the search root. |
+| `search.cacheTtlMs` | `30000` | File-list cache TTL; repeated searches reuse it. |
+| `search.cacheMaxBytes` | `33554432` | LRU budget for decoded text kept between calls. |
+| `run.timeoutMs` | `600000` | Timeout for the `run` tool. |
 
 Edits take effect on the next tool call.
 
@@ -125,8 +134,8 @@ The shipped `scripts/config.json` lives in the installed plugin and is replaced 
 ## Benchmark
 
 ```sh
-npm test                          # guard branches, config override, multi-language outline
-node bench/mcp-smoke.mjs          # MCP handshake + all four tools
+npm test                          # guard, languages, build parser, gitignore/UTF-16, runner
+node bench/mcp-smoke.mjs          # MCP handshake + all five tools
 node bench/measure.mjs            # synthetic scenarios, writes bench/RESULTS.md
 ```
 
@@ -144,7 +153,7 @@ On Windows, prefix with the variables in PowerShell (`$env:TOKEN_DIET_REAL_SLN="
 
 - Hooks execute as your user on every matching tool call. Read [`guard.mjs`](plugins/token-diet/scripts/guard.mjs) and [`loop-breaker.mjs`](plugins/token-diet/scripts/loop-breaker.mjs) before enabling; both are dependency-free and under 200 lines.
 - The guard denies, it never approves. Permission prompts still happen.
-- The MCP server is a single Node process; `outline`/`search` only read, `build` runs the project's own build, `diet` only reads `~/.zcode` metadata.
+- The MCP server is a single Node process; `outline`/`search` only read, `build` and `run` execute the project's own build/test commands, `diet` only reads `~/.zcode` metadata.
 - Nothing leaves your machine.
 
 ## Limitations
@@ -153,6 +162,9 @@ On Windows, prefix with the variables in PowerShell (`$env:TOKEN_DIET_REAL_SLN="
 - `outline` is regex-based, not a Roslyn parser. It catches declarations reliably, not everything inside them.
 - The PostToolUse warning fires once per fingerprint, not continuously.
 - Build compaction depends on the log. Small clean builds barely shrink.
+- `.gitignore` support covers the common subset (anchoring, negation, `*`, `**`, `?`, directory-only). Explicitly targeting an ignored subdirectory still searches it.
+- UTF-16 without a BOM is inferred from NUL-byte parity; unusual files may be classified as binary.
+- `run` uses fixed commands per ecosystem. It cannot run an arbitrary command, and a project whose test script is named unusually needs Bash.
 - The plugin cannot reduce the baseline cost of your other skills and plugins — use `/diet` and disable what you do not use.
 
 ## License

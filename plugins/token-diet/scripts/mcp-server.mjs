@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { outline, search } from "./lib/scan.mjs";
 import { runBuild } from "./lib/build.mjs";
 import { dietReport } from "./lib/diet.mjs";
+import { runAction } from "./lib/run.mjs";
 import { loadConfig } from "./lib/config.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +64,20 @@ const TOOLS = [
     },
   },
   {
+    name: "run",
+    description:
+      "Build, test or lint a non-.NET project (npm/pnpm/yarn, cargo, go, maven, gradle, make, pytest) and return only errors plus a summary. Use build for .NET.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project: { type: "string", description: "Project directory, default cwd" },
+        action: { type: "string", description: "build (default), test, or lint" },
+        dryRun: { type: "boolean", description: "Show the command without running it" },
+        timeoutMs: { type: "number", description: "Default 600000" },
+      },
+    },
+  },
+  {
     name: "diet",
     description:
       "Report which installed skills and plugins consume context tokens every session, and what to disable.",
@@ -84,13 +99,21 @@ function error(id, code, message) {
 
 async function callTool(name, args) {
   const a = args || {};
+  const searchOpts = {
+    extensions: config.search?.extensions || [],
+    respectGitignore: config.search?.respectGitignore,
+    cacheTtlMs: config.search?.cacheTtlMs,
+    cacheMaxBytes: config.search?.cacheMaxBytes,
+  };
   switch (name) {
     case "outline":
-      return outline(a.path || ".", a);
+      return outline(a.path || ".", { ...a, ...searchOpts });
     case "search":
-      return search({ ...a, extensions: config.search?.extensions || [] });
+      return search({ ...a, ...searchOpts });
     case "build":
       return runBuild(a, config);
+    case "run":
+      return runAction(a, config);
     case "diet":
       return dietReport(process.env.ZCODE_WORKSPACE_ROOT || process.cwd());
     default:

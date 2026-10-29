@@ -1,32 +1,16 @@
-// Shared scanning helpers for the outline and search tools.
+// Outline and search over the shared filesystem layer.
 //
-// Design notes:
-// - search() is language-agnostic: it walks any text file under the target and
-//   only skips known-binary extensions, NUL bytes, and oversized files.
+// - search() is language-agnostic: text search over every non-binary file under
+//   the target, honouring .gitignore, with a short-TTL file index and an LRU
+//   text cache.
 // - outline() is heuristic, not a parser. It recognises declaration shapes for
 //   C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart,
 //   shell, Lua, Perl and SQL. False negatives are expected for exotic syntax;
 //   the caller can always fall back to Read with offset/limit.
-// - Files are decoded from UTF-8 or UTF-16 (BOM), because legacy repositories
-//   on Windows often store source as UTF-16.
 
 import fs from "node:fs";
 import path from "node:path";
-
-export const SKIP_DIRS = new Set([
-  "node_modules", ".git", ".vs", "bin", "obj", "packages", "dist",
-  "build", ".next", ".angular", "TestResults", "artifacts", ".idea",
-]);
-
-const BINARY_EXT = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".tif", ".tiff",
-  ".pdf", ".zip", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar",
-  ".exe", ".dll", ".pdb", ".so", ".dylib", ".class", ".jar", ".war", ".ear",
-  ".woff", ".woff2", ".ttf", ".otf", ".eot",
-  ".mp3", ".mp4", ".avi", ".mov", ".mkv", ".wav", ".flac", ".ogg",
-  ".sqlite", ".sqlite3", ".db", ".bin", ".dat", ".cache", ".nupkg", ".snupkg",
-  ".vsix", ".obj", ".o", ".a", ".lib", ".pyc", ".pyo", ".wasm", ".pfx", ".snk",
-]);
+import { collectFiles, readTextCached } from "./fsindex.mjs";
 
 const CODE_EXT = new Set([
   ".cs", ".fs", ".vb", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
@@ -37,71 +21,6 @@ const CODE_EXT = new Set([
   ".sql", ".vue", ".svelte", ".astro", ".zig", ".nim", ".sol",
   ".tf", ".hcl", ".proto", ".graphql", ".gql", ".xaml",
 ]);
-
-// ---------------------------------------------------------------- decoding
-
-export function decodeBuffer(buf) {
-  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
-    return buf.subarray(2).toString("utf16le");
-  }
-  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
-    const copy = Buffer.from(buf.subarray(2));
-    copy.swap16();
-    return copy.toString("utf16le");
-  }
-  let text = buf.toString("utf8");
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  return text;
-}
-
-export function readText(file) {
-  return decodeBuffer(fs.readFileSync(file));
-}
-
-function hasBom(buf) {
-  if (buf.length < 2) return false;
-  return (buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff);
-}
-
-// ---------------------------------------------------------------- walking
-
-function walk(dir, out, limit = 20000) {
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return out;
-  }
-  for (const e of entries) {
-    if (out.length >= limit) return out;
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      if (SKIP_DIRS.has(e.name)) continue;
-      walk(full, out, limit);
-    } else if (e.isFile()) {
-      out.push(full);
-    }
-  }
-  return out;
-}
-
-export function collectFiles(target, exts) {
-  const p = path.resolve(target);
-  let st;
-  try {
-    st = fs.statSync(p);
-  } catch {
-    return { files: [], error: `Path not found: ${target}` };
-  }
-  const allow = exts ? new Set([...exts].map((x) => x.toLowerCase())) : null;
-  const ok = (f) => {
-    const ext = path.extname(f).toLowerCase();
-    if (BINARY_EXT.has(ext)) return false;
-    return allow ? allow.has(ext) : true;
-  };
-  if (st.isFile()) return { files: ok(p) ? [p] : [] };
-  return { files: walk(p, []).filter(ok) };
-}
 
 // ---------------------------------------------------------------- outline
 
@@ -156,7 +75,7 @@ function symbolKind(line) {
 export function outline(target, opts = {}) {
   const maxFiles = opts.maxFiles ?? 10;
   const maxPerFile = opts.maxPerFile ?? 60;
-  const { files, error } = collectFiles(target, CODE_EXT);
+  const { files, error } = collectFiles(target, CODE_EXT, opts);
   if (error) return { text: error, stats: { files: 0, symbols: 0 } };
   if (files.length === 0) {
     return { text: `No source files under ${target}`, stats: { files: 0, symbols: 0 } };
@@ -165,24 +84,21 @@ export function outline(target, opts = {}) {
   const sized = files
     .map((f) => {
       try {
-        return { f, size: fs.statSync(f).size };
+        return { f, stat: fs.statSync(f) };
       } catch {
-        return { f, size: 0 };
+        return null;
       }
     })
-    .sort((a, b) => b.size - a.size);
+    .filter(Boolean)
+    .sort((a, b) => b.stat.size - a.stat.size);
 
   const selected = sized.slice(0, maxFiles);
   const lines = [];
   let symbols = 0;
 
-  for (const { f } of selected) {
-    let text;
-    try {
-      text = readText(f);
-    } catch {
-      continue;
-    }
+  for (const { f, stat } of selected) {
+    const text = readTextCached(f, stat, opts.cacheMaxBytes);
+    if (text === null) continue;
     const rows = text.split(/\r?\n/);
     const rel = path.relative(process.cwd(), f) || f;
     const found = [];
@@ -225,7 +141,7 @@ export function search(opts) {
 
   const target = opts.path || ".";
   const allow = Array.isArray(opts.extensions) && opts.extensions.length > 0 ? opts.extensions : null;
-  const { files, error } = collectFiles(target, allow);
+  const { files, error } = collectFiles(target, allow, opts);
   if (error) return { text: error, stats: { matches: 0 } };
 
   const out = [];
@@ -237,17 +153,15 @@ export function search(opts) {
 
   for (const f of files) {
     if (capped) break;
-    let buf;
+    let stat;
     try {
-      const size = fs.statSync(f).size;
-      if (size > 2_000_000) continue;
-      buf = fs.readFileSync(f);
-      // UTF-16 source has NUL bytes but is text; only skip BOM-less binaries.
-      if (!hasBom(buf) && buf.includes(0)) continue;
+      stat = fs.statSync(f);
+      if (stat.size > 2_000_000) continue;
     } catch {
       continue;
     }
-    const text = decodeBuffer(buf);
+    const text = readTextCached(f, stat, opts.cacheMaxBytes);
+    if (text === null) continue;
     const rows = text.split(/\r?\n/);
     const rel = path.relative(process.cwd(), f) || f;
     for (let i = 0; i < rows.length; i++) {

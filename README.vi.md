@@ -24,7 +24,7 @@ Mỗi ký tự tool trả về đều tốn token, và còn tốn lại ở các
 
 Dòng cuối là giới hạn thật: khi build đã chạy `-v:q` và fail sớm thì gần như không còn gì để nén. Plugin có lãi ở file lớn, tìm kiếm toàn repo và build nhiều warning.
 
-Chi phí thường trực của chính plugin khoảng **600 token mỗi session** (4 tool schema ≈ 447, description skill và agent ≈ 154).
+Chi phí thường trực của chính plugin khoảng **730 token mỗi session** (5 tool schema ≈ 578, description skill và agent ≈ 154).
 
 ## Cài đặt
 
@@ -42,9 +42,9 @@ Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode
 | Lớp | Phạm vi |
 |---|---|
 | Guard | Mọi ngôn ngữ. Nó xét kích thước file và câu lệnh shell, không phân tích cú pháp. |
-| `search` | Mọi file text. Bỏ qua file nhị phân/NUL, giải mã được UTF-16LE/BE. Có thể giới hạn bằng `search.extensions`. |
+| `search` | Mọi file text. Bỏ qua file nhị phân/NUL, giải mã UTF-16LE/BE (có hoặc không BOM), tôn trọng `.gitignore`, cache nội dung giữa các lần gọi. Có thể giới hạn bằng `search.extensions`. |
 | `outline` | Nhận diện khai báo theo heuristic cho C/C++/C#/Java/Kotlin, JS/TS, Python, Ruby, PHP, Go, Rust, Swift, Scala, Dart, shell, Lua, Perl và SQL. Là regex, không phải parser. |
-| `build` | Chỉ .NET (MSBuild hoặc `dotnet`). Hệ sinh thái khác dùng lệnh build riêng; tool báo rõ thay vì đoán. |
+| `build` / `run` | `build` chỉ .NET (MSBuild hoặc `dotnet`). `run` xử lý npm/pnpm/yarn, cargo, go, maven, gradle, make và pytest với lệnh cố định từng hệ sinh thái. |
 | Skill, agent, `AGENTS.md` mẫu | Không phụ thuộc ngôn ngữ. |
 
 ## Thành phần
@@ -54,6 +54,7 @@ Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode
 | `outline` | Liệt kê class/method kèm số dòng, thay cho đọc cả file |
 | `search` | Tìm text hoặc `/regex/`, trả `file:line` + 2 dòng context, cap 30 match / 8 KB |
 | `build` | Tự chọn MSBuild (legacy .NET Framework) hoặc `dotnet build` (SDK), giữ full log ở `.token-diet/build.log`, chỉ trả lỗi + warning gộp theo mã |
+| `run` | Build/test/lint cho npm/pnpm/yarn, cargo, go, maven, gradle, make, pytest; trích lỗi theo định dạng từng công cụ |
 | `diet` | Báo cáo skill/plugin nào đang tốn token mỗi session |
 | `token-diet:scout` | Subagent chỉ đọc, trả về `file:line`, không dán code |
 | Hook `PreToolUse` | Chặn `Read` không `limit` trên file > 128 KB, `cat` file lớn, `grep -r` không giới hạn, `git log -p` không `-n` |
@@ -66,11 +67,16 @@ Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc đ�
 
 Đặt riêng trong `~/.zcode/token-diet.config.json` (hoặc đường dẫn ở `TOKEN_DIET_CONFIG`) để không mất khi update plugin; hai file được merge, giá trị của bạn thắng.
 
+Các khoá mới: `search.respectGitignore` (mặc định `true`), `search.cacheTtlMs` (30000), `search.cacheMaxBytes` (32 MB), `run.timeoutMs` (600000).
+
 ## Giới hạn
 
 - Không tiết kiệm gì trong hội thoại ngắn.
 - `outline` dùng regex, không phải Roslyn parser.
 - Không giảm được chi phí nền của các skill/plugin khác — dùng `/diet` rồi tắt bớt.
+- `.gitignore` chỉ hỗ trợ tập con phổ biến; trỏ thẳng vào thư mục bị ignore vẫn tìm được.
+- UTF-16 không BOM được suy đoán từ vị trí byte NUL; file lạ có thể bị coi là nhị phân.
+- `run` dùng lệnh cố định, không chạy lệnh tuỳ ý.
 - Hook chạy quyền user trên mọi tool call; đọc script trước khi bật.
 
 ## Benchmark

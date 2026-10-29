@@ -1,6 +1,6 @@
 # Token-diet benchmark
 
-Generated 2026-10-29T03:43:34.371Z | fixtures are synthetic, sized like real-world enterprise files.
+Generated 2026-10-29T03:52:53.711Z | fixtures are synthetic, sized like real-world enterprise files.
 Token estimate: 3.6 chars/token for code, 4 for logs/prose.
 
 | Scenario | Before (tokens) | After (tokens) | Saved |
@@ -8,7 +8,6 @@ Token estimate: 3.6 chars/token for code, 4 for logs/prose.
 | Read one large C# file (whole file) | 38,749 | 1,761 | 95.5% |
 | Find one symbol across the repo (grep -rn) | 9,218 | 1,698 | 81.6% |
 | Read a build log (dotnet build) | 55,783 | 461 | 99.2% |
-| Legacy build ERP.sln (msbuild, exit 1, log 106 KB) | 27,258 | 2,104 | 92.3% |
 
 ## Guard behaviour
 
@@ -22,8 +21,8 @@ Token estimate: 3.6 chars/token for code, 4 for logs/prose.
 ## Plugin permanent cost
 
 - Skill description + agent description: ~154 tokens
-- 4 MCP tool schemas: ~474 tokens
-- Total: ~628 tokens per session
+- 4 MCP tool schemas: ~559 tokens
+- Total: ~713 tokens per session
 
 ## Baseline on the generating machine (example)
 

@@ -6,14 +6,14 @@ Cuts the tokens a coding session spends on file dumps, unbounded greps and raw b
 
 | Component | What it does |
 |---|---|
-| MCP tools `outline`, `search`, `build`, `diet` | Structure-only reads, capped search, compact build (MSBuild for legacy .NET Framework, dotnet for SDK-style), baseline context report |
+| MCP tools `outline`, `search`, `build`, `run`, `diet` | Structure-only reads, capped search, compact build (MSBuild for legacy .NET Framework, dotnet for SDK-style), build/test/lint for other ecosystems, baseline context report |
 | Agent `token-diet:scout` | Read-only subagent that returns `file:line` pointers instead of code |
 | PreToolUse hook | Blocks unbounded `Read`, `cat` of large files, `grep -r` without a cap, `git log -p` without `-n` |
 | PostToolUse hook | Warns once when the same tool call runs three times with identical input |
 | Skill `token-diet` | The behaviour rules that make the model choose the cheap path |
 | Commands `/build`, `/diet` | Manual entry points for the two most useful tools |
 
-Language coverage: the guard is language-agnostic; `search` scans any text file and decodes UTF-16; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only.
+Language coverage: the guard is language-agnostic; `search` scans any text file, decodes UTF-16 (BOM or sniffed) and honours `.gitignore`; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only; `run` covers npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest.
 
 ## Install
 
@@ -37,6 +37,8 @@ Edit `scripts/config.json`:
 - `build.msbuildPath` — pin MSBuild.exe; empty means VS 2019 Build Tools first, then other Visual Studio installs, then `vswhere`.
 - `build.configuration` / `build.platform` — defaults `Debug` / `Any CPU` for the MSBuild path. SDK builds ignore `platform` unless you pass it explicitly.
 - `search.extensions` — empty scans every text file; a list like `[".cs",".ts"]` narrows it.
+- `search.respectGitignore` (default `true`), `search.cacheTtlMs` (30000), `search.cacheMaxBytes` (32 MB) — ignore handling and caches for repeated searches.
+- `run.timeoutMs` (default 600000) — timeout for the `run` tool.
 
 Changes take effect on the next tool call; no restart needed.
 
@@ -45,6 +47,6 @@ The shipped `scripts/config.json` is replaced when the plugin updates. Put perso
 ## Honest limits
 
 - Savings are real only on large files, repo-wide searches and builds. A short chat session saves nothing.
-- Tool schemas and the skill description cost roughly 600 tokens per session — the plugin pays for itself only if it prevents one medium-sized dump.
+- Tool schemas and the skill description cost roughly 730 tokens per session — the plugin pays for itself only if it prevents one medium-sized dump.
 - Build compaction depends on the log. A real 59-project .NET Framework solution through MSBuild shrank 92.3% (27,258 → 2,104 tokens). A small failing build already run with `-v:q` shrank only 8%.
 - The plugin cannot reduce the baseline cost of your other skills or MCP servers; use `/diet` and disable what you do not use.

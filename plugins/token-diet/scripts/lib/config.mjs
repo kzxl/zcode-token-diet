@@ -41,6 +41,12 @@ export const DEFAULT_CONFIG = {
   },
   search: {
     extensions: [],
+    respectGitignore: true,
+    cacheTtlMs: 30000,
+    cacheMaxBytes: 33554432,
+  },
+  run: {
+    timeoutMs: 600000,
   },
 };
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0
+
+- `search` honours `.gitignore` and caches the file list and decoded text
+  between calls (`search.respectGitignore`, `search.cacheTtlMs`,
+  `search.cacheMaxBytes`).
+- UTF-16 without a BOM is detected from NUL-byte parity instead of being
+  treated as binary.
+- New `run` tool: build/test/lint for npm/pnpm/yarn, cargo, go, maven, gradle,
+  make and pytest, with per-ecosystem error extraction and `dryRun`.
+- Tests: gitignore rules, UTF-16 without BOM, cache behaviour, ecosystem
+  detection, command planning and log compaction (tsc, rustc, go, pytest, npm,
+  maven, gradle).
+
 ## 0.2.1
 
 - `outline` also recognises unmodified class and object methods in JS/TS
