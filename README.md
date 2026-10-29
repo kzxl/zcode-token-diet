@@ -135,7 +135,7 @@ The shipped `scripts/config.json` lives in the installed plugin and is replaced 
 
 The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: blocked calls, tokens kept out of context, tool calls and tool output for the last 24 hours. It costs no conversation tokens, and reopening it refreshes the numbers.
 
-This is the same `ui.surfaces` mechanism the official document plugins use. Third-party support is not documented, so treat it as experimental: if no **Token Diet** panel appears, nothing else is affected and `/saved` still works.
+This is the same MCP Apps mechanism the official document plugins use. The manifest surface alone did not open in testing, so `/saved` also returns the `_meta["ui/resourceUri"]` hint that asks the host to render the panel. Treat it as experimental: if no **Token Diet** panel appears, nothing else is affected and the text report still works.
 
 ## Savings ledger
 

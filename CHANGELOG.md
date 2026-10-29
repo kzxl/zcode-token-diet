@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- `diet({scope:"savings"})` returns MCP Apps metadata
+  (`_meta["ui/resourceUri"]`), so the host can render the panel when `/saved`
+  runs. The manifest surface alone did not surface in the side panel.
+
 ## 0.5.0
 
 - Experimental MCP App panel (`ui://token-diet/panel.html`) declared through

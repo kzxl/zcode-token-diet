@@ -1,6 +1,6 @@
 {
   "name": "token-diet",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
   "author": {
     "name": "local"

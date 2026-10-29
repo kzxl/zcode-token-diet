@@ -258,7 +258,14 @@ rl.on("line", async (line) => {
       return;
     }
     result(id, {
-      contents: [{ uri: PANEL_URI, mimeType: "text/html;profile=mcp-app", text: panelHtml() }],
+      contents: [
+        {
+          uri: PANEL_URI,
+          mimeType: "text/html;profile=mcp-app",
+          text: panelHtml(),
+          _meta: { "ui/resourceUri": PANEL_URI, ui: { resourceUri: PANEL_URI } },
+        },
+      ],
     });
     return;
   }
@@ -280,7 +287,13 @@ rl.on("line", async (line) => {
         inChars: JSON.stringify(params?.arguments || {}).length,
         ms: Date.now() - started,
       });
-      result(id, { content: [{ type: "text", text: out.text }], isError: false });
+      const payload = { content: [{ type: "text", text: out.text }], isError: false };
+      // MCP Apps: a tool result can point at a UI resource; the host renders it.
+      // `diet scope=savings` is the natural trigger for the ledger panel.
+      if (name === "diet" && params?.arguments?.scope === "savings") {
+        payload._meta = { "ui/resourceUri": PANEL_URI, ui: { resourceUri: PANEL_URI } };
+      }
+      result(id, payload);
     } catch (e) {
       result(id, {
         content: [{ type: "text", text: `token-diet ${name} failed: ${e.message}` }],
