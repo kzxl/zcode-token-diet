@@ -118,8 +118,9 @@ try {
   const savings = await rpc("tools/call", { name: "diet", arguments: { scope: "savings", days: 1 } });
   const savText = savings.result?.content?.[0]?.text || "";
   const savMeta = savings.result?._meta?.["ui/resourceUri"] || "";
+  const savInline = savings.result?._meta?.ui?.showInline === true;
   out.push(`diet savings -> ${savText.split("\n")[0] || "(empty)"} / ${savText.split("\n").find((l) => l.startsWith("Blocked")) || "no blocked line"}`);
-  out.push(`diet savings ui -> ${savMeta || "(no ui meta)"}`);
+  out.push(`diet savings ui -> ${savMeta || "(no ui meta)"} inline=${savInline}`);
 
   const resList = await rpc("resources/list", {});
   const resources = resList.result?.resources || [];

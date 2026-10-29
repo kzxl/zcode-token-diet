@@ -263,7 +263,10 @@ rl.on("line", async (line) => {
           uri: PANEL_URI,
           mimeType: "text/html;profile=mcp-app",
           text: panelHtml(),
-          _meta: { "ui/resourceUri": PANEL_URI, ui: { resourceUri: PANEL_URI } },
+          _meta: {
+            "ui/resourceUri": PANEL_URI,
+            ui: { resourceUri: PANEL_URI, showInline: true, preferredDisplayMode: "inline", prefersBorder: true },
+          },
         },
       ],
     });
@@ -291,7 +294,10 @@ rl.on("line", async (line) => {
       // MCP Apps: a tool result can point at a UI resource; the host renders it.
       // `diet scope=savings` is the natural trigger for the ledger panel.
       if (name === "diet" && params?.arguments?.scope === "savings") {
-        payload._meta = { "ui/resourceUri": PANEL_URI, ui: { resourceUri: PANEL_URI } };
+        payload._meta = {
+          "ui/resourceUri": PANEL_URI,
+          ui: { resourceUri: PANEL_URI, showInline: true, preferredDisplayMode: "inline", prefersBorder: true },
+        };
       }
       result(id, payload);
     } catch (e) {

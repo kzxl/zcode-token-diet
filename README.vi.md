@@ -75,7 +75,7 @@ Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắn
 
 Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: số lần chặn, token giữ khỏi context, số tool call và lượng output trong 24 giờ. Không tốn token hội thoại; mở lại panel là số liệu được làm mới.
 
-Đây đúng là cơ chế MCP Apps mà các plugin tài liệu chính thức dùng. Khi thử, chỉ khai báo surface trong manifest chưa mở được panel, nên `/saved` trả thêm `_meta["ui/resourceUri"]` để yêu cầu host render. Coi là thử nghiệm: nếu không thấy panel **Token Diet**, không ảnh hưởng gì khác và báo cáo dạng text vẫn dùng bình thường.
+Đây đúng là cơ chế MCP Apps mà các plugin tài liệu chính thức dùng. Surface trong manifest không tự mở, nên `/saved` yêu cầu render inline (`_meta.ui.showInline` và `preferredDisplayMode: "inline"`). Mục panel bên phải vẫn mở thủ công được. Coi là thử nghiệm: nếu panel không hiện, báo cáo text vẫn dùng bình thường.
 
 ## Ledger tiết kiệm
 

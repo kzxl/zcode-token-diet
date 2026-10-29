@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+- The panel asks for inline display (`_meta.ui.showInline` and
+  `preferredDisplayMode: "inline"`), so `/saved` renders it in the conversation
+  instead of requiring the side panel to be opened manually.
+
 ## 0.5.1
 
 - `diet({scope:"savings"})` returns MCP Apps metadata
