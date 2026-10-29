@@ -10,9 +10,10 @@ import { runBuild } from "./lib/build.mjs";
 import { dietReport } from "./lib/diet.mjs";
 import { runAction } from "./lib/run.mjs";
 import { loadConfig } from "./lib/config.mjs";
+import { appendLedger, savingsReport } from "./lib/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const config = loadConfig(here);
+const config = loadConfig(here, process.cwd());
 let version = "0.2.0";
 try {
   version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
@@ -80,8 +81,14 @@ const TOOLS = [
   {
     name: "diet",
     description:
-      "Report which installed skills and plugins consume context tokens every session, and what to disable.",
-    inputSchema: { type: "object", properties: {} },
+      "Report which installed skills and plugins consume context tokens every session, and what to disable. scope=savings reports what the guard blocked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        scope: { type: "string", description: "context (default) or savings" },
+        days: { type: "number", description: "savings window in days, default 1" },
+      },
+    },
   },
 ];
 
@@ -115,6 +122,7 @@ async function callTool(name, args) {
     case "run":
       return runAction(a, config);
     case "diet":
+      if (a.scope === "savings") return savingsReport(a.days || 1);
       return dietReport(process.env.ZCODE_WORKSPACE_ROOT || process.cwd());
     default:
       throw new Error(`unknown tool: ${name}`);
@@ -158,8 +166,16 @@ rl.on("line", async (line) => {
 
   if (method === "tools/call") {
     const name = params?.name;
+    const started = Date.now();
     try {
       const out = await callTool(name, params?.arguments);
+      appendLedger({
+        t: "tool",
+        tool: name,
+        outChars: out.text?.length || 0,
+        inChars: JSON.stringify(params?.arguments || {}).length,
+        ms: Date.now() - started,
+      });
       result(id, { content: [{ type: "text", text: out.text }], isError: false });
     } catch (e) {
       result(id, {

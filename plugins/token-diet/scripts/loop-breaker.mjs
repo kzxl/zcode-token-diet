@@ -22,11 +22,6 @@ function readStdin() {
 }
 
 async function main() {
-  const cfg = loadConfig(here);
-  const lb = cfg.loopBreaker || {};
-  if (lb.enabled === false) return;
-
-  const threshold = lb.threshold ?? 3;
   const raw = await readStdin();
   let ev;
   try {
@@ -34,6 +29,11 @@ async function main() {
   } catch {
     return;
   }
+  const cfg = loadConfig(here, ev.cwd || process.cwd());
+  const lb = cfg.loopBreaker || {};
+  if (lb.enabled === false) return;
+
+  const threshold = lb.threshold ?? 3;
 
   const session = String(ev.session_id || "unknown").replace(/[^\w.-]/g, "_");
   const tool = ev.tool_name || "";

@@ -11,7 +11,7 @@ Cuts the tokens a coding session spends on file dumps, unbounded greps and raw b
 | PreToolUse hook | Blocks unbounded `Read`, `cat` of large files, `grep -r` without a cap, `git log -p` without `-n` |
 | PostToolUse hook | Warns once when the same tool call runs three times with identical input |
 | Skill `token-diet` | The behaviour rules that make the model choose the cheap path |
-| Commands `/build`, `/diet` | Manual entry points for the two most useful tools |
+| Commands `/build`, `/diet`, `/saved` | Manual entry points: compact build, baseline report, savings ledger |
 
 Language coverage: the guard is language-agnostic; `search` scans any text file, decodes UTF-16 (BOM or sniffed) and honours `.gitignore`; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only; `run` covers npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest.
 
@@ -47,6 +47,12 @@ The shipped `scripts/config.json` is replaced when the plugin updates. Put perso
 ## Honest limits
 
 - Savings are real only on large files, repo-wide searches and builds. A short chat session saves nothing.
-- Tool schemas and the skill description cost roughly 730 tokens per session — the plugin pays for itself only if it prevents one medium-sized dump.
+- Tool schemas and the skill description cost roughly 780 tokens per session — the plugin pays for itself only if it prevents one medium-sized dump.
 - Build compaction depends on the log. A real 59-project .NET Framework solution through MSBuild shrank 92.3% (27,258 → 2,104 tokens). A small failing build already run with `-v:q` shrank only 8%.
 - The plugin cannot reduce the baseline cost of your other skills or MCP servers; use `/diet` and disable what you do not use.
+- Every guarded tool call costs about 70 ms on Windows (process spawn). The ledger append itself is 0.35 ms.
+- Search savings drop to ~36% on repositories with sparse matches, where context lines dominate.
+
+## Ledger
+
+Blocked calls and MCP tool calls are appended to `~/.zcode/token-diet/ledger.jsonl` (override with `TOKEN_DIET_DATA`). `/saved [days]` summarises it.

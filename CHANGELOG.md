@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+- Local savings ledger: every blocked call and MCP tool call is appended to
+  `~/.zcode/token-diet/ledger.jsonl` (`TOKEN_DIET_DATA` overrides the directory),
+  and `diet({scope:"savings"})` / `/saved` summarises it.
+- Guard checks every path argument of `cat`/`type`, not only the last one.
+- Minified files (`.min.js`, or >20 KB with almost no newlines) get a quarter of
+  the read budget, so a 49 KB bundle is blocked like a large source file.
+- Per-repository config at `<repo>/.token-diet.json`, merged over the user file.
+- Search header reports "at least N matches" when the 8 KB output cap stopped the
+  scan, instead of implying the exact count.
+- New benchmarks: `repo-bench.mjs` (nine real repositories across C, C#, Go,
+  PHP, TypeScript, Rust, Kotlin, Python) and `hook-bench.mjs` (hook latency).
+
 ## 0.3.0
 
 - `search` honours `.gitignore` and caches the file list and decoded text

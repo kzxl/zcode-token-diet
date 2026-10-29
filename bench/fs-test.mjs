@@ -52,8 +52,15 @@ const s2 = search({ pattern: "NeedleToken", path: tmp, maxMatches: 50, respectGi
 check("respectGitignore=false includes generated", /generated[\\/]g\.ts:1:/.test(s2));
 check("respectGitignore=false includes *.log", /(^|\W)x\.log:1:/.test(s2));
 
-console.log("cache");
+console.log("search header");
+write("src/many.ts", Array.from({ length: 300 }, (_, i) => `const NeedleToken = ${i};`).join("\n") + "\n");
 clearCaches();
+const stopped = search({ pattern: "NeedleToken", path: tmp, maxMatches: 200, maxBytes: 600, cacheTtlMs: 0 }).text;
+check("byte-cap stop reports a lower bound", /Found at least \d+ match/.test(stopped), stopped.split("\n")[0]);
+const capped = search({ pattern: "NeedleToken", path: tmp, maxMatches: 3, maxBytes: 65536, cacheTtlMs: 0 }).text;
+check("match-cap keeps an exact count", /Found \d+ match\(es\) in/.test(capped), capped.split("\n")[0]);
+
+console.log("cache");clearCaches();
 const first = search({ pattern: "NotYet", path: tmp, cacheTtlMs: 60000 }).text;
 check("first search sees existing file", /src[\\/]new\.ts:1:/.test(first));
 write("src/later.ts", "const NotYet = 1;\n");

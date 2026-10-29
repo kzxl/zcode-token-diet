@@ -6,9 +6,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/config.mjs";
+import { appendLedger } from "./lib/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const cfg = loadConfig(here);
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -47,7 +47,8 @@ function approxLines(bytes) {
   return Math.round(bytes / 38);
 }
 
-function deny(reason) {
+function deny(reason, meta = {}) {
+  appendLedger({ t: "deny", event: meta.event || "unknown", bytes: meta.bytes || 0, file: meta.file || "", reason });
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
@@ -60,39 +61,45 @@ function deny(reason) {
   process.exit(0);
 }
 
-// Pull the path argument out of a shell string well enough for the common cases.
-function lastPathArg(command) {
+// Flatten every path-looking argument, not just the last one.
+function pathArgs(command) {
   const tokens = command.match(/"[^"]+"|'[^']+'|\S+/g) || [];
-  const skip = new Set([
-    "cat",
-    "type",
-    "more",
-    "get-content",
-    "gc",
-    "-r",
-    "-n",
-    "head",
-    "tail",
-    "less",
-    "bat",
-  ]);
-  for (let i = tokens.length - 1; i >= 0; i--) {
-    let t = tokens[i].replace(/^["']|["']$/g, "");
-    if (t.startsWith("-") || t.startsWith("|") || skip.has(t.toLowerCase())) continue;
-    if (/^[a-z]+:/i.test(t) && !/^[a-z]:[\\/]/i.test(t)) continue;
-    return t;
+  const out = [];
+  for (let i = 1; i < tokens.length; i++) {
+    const t = tokens[i].replace(/^["']|["']$/g, "");
+    if (!t) continue;
+    if (/^[|&>]/.test(t)) break;
+    if (t.startsWith("-")) continue;
+    if (/^\d+$/.test(t)) continue;
+    out.push(t);
   }
-  return "";
+  return out;
 }
 
-function stripQuotes(s) {
-  return s.replace(/^["']|["']$/g, "");
+// A 128 KB minified bundle is far more expensive than a 128 KB source file:
+// few lines, very long ones. Lower the budget when the file looks minified.
+function isMinified(file, size) {
+  if (/\.min\.(js|css)$/i.test(file)) return true;
+  if (size < 20000) return false;
+  try {
+    const fd = fs.openSync(file, "r");
+    const buf = Buffer.alloc(4096);
+    const n = fs.readSync(fd, buf, 0, 4096, 0);
+    fs.closeSync(fd);
+    if (n < 500) return false;
+    let nl = 0;
+    for (let i = 0; i < n; i++) if (buf[i] === 10) nl++;
+    return nl <= 3;
+  } catch {
+    return false;
+  }
+}
+
+function effectiveMax(file, size, maxBytes) {
+  return isMinified(file, size) ? Math.floor(maxBytes / 4) : maxBytes;
 }
 
 async function main() {
-  const g = cfg.guard || {};
-  if (g.enabled === false) return;
-
   const raw = await readStdin();
   let ev;
   try {
@@ -101,10 +108,14 @@ async function main() {
     return;
   }
 
+  const cfg = loadConfig(here, ev.cwd || process.cwd());
+  const g = cfg.guard || {};
+  if (g.enabled === false) return;
+
   const tool = ev.tool_name || "";
   const input = ev.tool_input || {};
 
-  // --- Read without an explicit limit on a large file -----------------------
+  // --- Read without a usable limit on a large file --------------------------
   if (tool === "Read") {
     const r = g.read || {};
     const maxBytes = r.maxBytes ?? 131072;
@@ -112,23 +123,25 @@ async function main() {
     const p = input.file_path;
     const limit = typeof input.limit === "number" ? input.limit : null;
     const hasLimit = limit !== null && limit > 0;
-    // A huge explicit limit is the same thing as no limit; check the value too.
     const tooBig = hasLimit && limit > maxLimitLines;
     if (p && (!hasLimit || tooBig)) {
-      const size = fileSize(resolveExisting(p, ev.cwd || process.cwd()));
-      if (size > maxBytes) {
+      const full = resolveExisting(p, ev.cwd || process.cwd());
+      const size = fileSize(full);
+      const budget = effectiveMax(full, size, maxBytes);
+      if (size > budget) {
         const name = path.basename(p);
         const kb = Math.round(size / 1024);
         const lines = approxLines(size);
         const approxK = Math.round(size / 3.6 / 1000);
-        const suggest = r.suggestLines ?? maxLimitLines;
+        const suggest = Math.min(r.suggestLines ?? maxLimitLines, maxLimitLines);
+        const compact = budget < maxBytes ? ` It looks minified, so the read budget is ${Math.round(budget / 1024)} KB.` : "";
         const reason = tooBig
-          ? `token-diet blocked Read with limit=${limit}: on ${name} (${kb} KB, ~${lines} lines) that is effectively a full read (~${approxK}k tokens). ` +
+          ? `token-diet blocked Read with limit=${limit}: on ${name} (${kb} KB) that is effectively a full read (~${approxK}k tokens).${compact} ` +
             `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool.`
-          : `token-diet blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens. ` +
+          : `token-diet blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens.${compact} ` +
             `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool; ` +
             `if you have no MCP tools, locate what you need with grep -n -m 20 "<symbol>" ${name}.`;
-        deny(reason);
+        deny(reason, { event: "read", bytes: size, file: name });
       }
     }
   }
@@ -137,7 +150,7 @@ async function main() {
   if (tool === "Bash") {
     const b = g.bash || {};
     if (b.enabled === false) return;
-    const cmd = stripQuotes(String(input.command || ""));
+    const cmd = String(input.command || "").trim();
     if (!cmd) return;
 
     if (b.denyRecursiveGrep !== false) {
@@ -156,27 +169,21 @@ async function main() {
       if (recursiveGrep && !bounded) {
         deny(
           `token-diet blocked an unbounded recursive grep. Add -m 5 or -l, pipe through head, ` +
-            `or use the token-diet "search" tool (returns file:line with 2 context lines, capped at 8 KB).`
+            `or use the token-diet "search" tool (returns file:line with 2 context lines, capped at 8 KB).`,
+          { event: "grep" }
         );
       }
       if (recursiveFindstr) {
-        deny(
-          `token-diet blocked "findstr /s" without /m. Add /m, or use the token-diet "search" tool.`
-        );
+        deny(`token-diet blocked "findstr /s" without /m. Add /m, or use the token-diet "search" tool.`, { event: "grep" });
       }
       if (rg && !rgBounded) {
-        deny(
-          `token-diet blocked rg without a cap. Add -l, -m 5, or pipe through head; ` +
-            `or use the token-diet "search" tool.`
-        );
+        deny(`token-diet blocked rg without a cap. Add -l, -m 5, or pipe through head; or use the token-diet "search" tool.`, { event: "grep" });
       }
     }
 
     if (b.denyPatchLog !== false) {
       if (/\bgit\s+log\b/.test(cmd) && /(\s-p\b|--patch)/.test(cmd) && !/(-n\s*\d|--max-count)/.test(cmd)) {
-        deny(
-          `token-diet blocked "git log --patch" without a limit. Add -n 20, or use --stat for a summary.`
-        );
+        deny(`token-diet blocked "git log --patch" without a limit. Add -n 20, or use --stat for a summary.`, { event: "git-log" });
       }
     }
 
@@ -184,23 +191,26 @@ async function main() {
       if (/\b(dotnet\s+build|msbuild)\b/.test(cmd) && !/(-v:\s*[qm]\b|--verbosity\s+(quiet|minimal))/.test(cmd)) {
         deny(
           `token-diet: verbose build logs are huge. Use the token-diet "build" tool (returns only errors and grouped warnings), ` +
-            `or add -v:q.`
+            `or add -v:q.`,
+          { event: "build" }
         );
       }
     }
 
     if (/\b(cat|type|more|Get-Content|gc)\b/i.test(cmd)) {
       const maxBytes = b.catMaxBytes ?? 131072;
-      const p = lastPathArg(cmd);
-      if (p) {
-        const size = fileSize(resolveExisting(p, ev.cwd || process.cwd()));
-        if (size > maxBytes) {
+      for (const p of pathArgs(cmd)) {
+        const full = resolveExisting(p, ev.cwd || process.cwd());
+        const size = fileSize(full);
+        const budget = effectiveMax(full, size, maxBytes);
+        if (size > budget) {
           const isCode = /\.(cs|ts|tsx|js|mjs|cjs|java|kt|py|go|rb|php|cpp|h|hpp|c|xaml)$/i.test(p);
           deny(
             `token-diet blocked dumping ${path.basename(p)} (${Math.round(size / 1024)} KB) to the terminal. ` +
               (isCode
                 ? `Use the token-diet "outline" tool first, or head -n 100.`
-                : `Read a slice instead: head -n 100, sed -n '1,100p', or the token-diet "search" tool.`)
+                : `Read a slice instead: head -n 100, sed -n '1,100p', or the token-diet "search" tool.`),
+            { event: "cat", bytes: size, file: path.basename(p) }
           );
         }
       }
@@ -209,11 +219,14 @@ async function main() {
     // PowerShell: [IO.File]::ReadAllText("...") bypasses Get-Content wording.
     const readAll = cmd.match(/\bReadAllText\(\s*['"]([^'"]+)['"]/i);
     if (readAll) {
-      const size = fileSize(resolveExisting(readAll[1], ev.cwd || process.cwd()));
-      if (size > (b.catMaxBytes ?? 131072)) {
+      const full = resolveExisting(readAll[1], ev.cwd || process.cwd());
+      const size = fileSize(full);
+      const budget = effectiveMax(full, size, b.catMaxBytes ?? 131072);
+      if (size > budget) {
         deny(
           `token-diet blocked ReadAllText on ${path.basename(readAll[1])} (${Math.round(size / 1024)} KB). ` +
-            `Read a slice instead: Get-Content -TotalCount 100, or the token-diet "outline" tool.`
+            `Read a slice instead: Get-Content -TotalCount 100, or the token-diet "outline" tool.`,
+          { event: "readall", bytes: size, file: path.basename(readAll[1]) }
         );
       }
     }

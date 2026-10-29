@@ -3,8 +3,9 @@
 //
 // Precedence (later wins):
 //   1. DEFAULT_CONFIG below
-//   2. <plugin>/scripts/config.json  (shipped defaults)
-//   3. ~/.zcode/token-diet.config.json  (or $TOKEN_DIET_CONFIG)
+//   2. <plugin>/scripts/config.json       (shipped defaults)
+//   3. ~/.zcode/token-diet.config.json    (or $TOKEN_DIET_CONFIG)
+//   4. <workspace>/.token-diet.json       (per-repository overrides)
 //
 // Hooks must never print to stdout while loading config, so every failure is
 // silent and falls back to the previous layer.
@@ -75,9 +76,13 @@ export function userConfigPath() {
   return process.env.TOKEN_DIET_CONFIG || path.join(os.homedir(), ".zcode", "token-diet.config.json");
 }
 
-export function loadConfig(scriptDir) {
+export function loadConfig(scriptDir, cwd) {
   let cfg = mergeConfig(structuredClone(DEFAULT_CONFIG), readJson(path.join(scriptDir, "config.json")) || {});
   const user = readJson(userConfigPath());
   if (user) cfg = mergeConfig(cfg, user);
+  if (cwd) {
+    const workspace = readJson(path.join(cwd, ".token-diet.json"));
+    if (workspace) cfg = mergeConfig(cfg, workspace);
+  }
   return cfg;
 }

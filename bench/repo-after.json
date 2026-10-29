@@ -1,0 +1,275 @@
+{
+  "rows": [
+    {
+      "repo": "go",
+      "path": "E:/15. Other/go",
+      "files": 75,
+      "codeFiles": 49,
+      "language": ".go",
+      "pattern": "func ",
+      "encoding": {
+        "utf8": 49
+      },
+      "search": {
+        "matches": 510,
+        "matchesCapped": false,
+        "naiveTokens": 13159,
+        "toolTokens": 1719,
+        "reduction": "86.9",
+        "naiveMs": 16,
+        "coldMs": 22,
+        "warmMs": 5,
+        "speedup": "4.4",
+        "header": "Found 510 match(es) in 3 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 576,
+        "tokens": 7810,
+        "ms": 20,
+        "symbolsPerFile": "19.2"
+      },
+      "totalMs": 88
+    },
+    {
+      "repo": "php",
+      "path": "E:/15. Other/php",
+      "files": 365,
+      "codeFiles": 291,
+      "language": ".php",
+      "pattern": "function ",
+      "encoding": {
+        "utf8": 291
+      },
+      "search": {
+        "matches": 1679,
+        "matchesCapped": false,
+        "naiveTokens": 57998,
+        "toolTokens": 2109,
+        "reduction": "96.4",
+        "naiveMs": 57,
+        "coldMs": 74,
+        "warmMs": 21,
+        "speedup": "3.5",
+        "header": "Found 1679 match(es) in 3 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 626,
+        "tokens": 11239,
+        "ms": 41,
+        "symbolsPerFile": "20.9"
+      },
+      "totalMs": 251
+    },
+    {
+      "repo": "Recoit",
+      "path": "E:/15. Other/Recoit",
+      "files": 33,
+      "codeFiles": 27,
+      "language": ".py",
+      "pattern": "def ",
+      "encoding": {
+        "utf8": 27
+      },
+      "search": {
+        "matches": 111,
+        "matchesCapped": false,
+        "naiveTokens": 3013,
+        "toolTokens": 1910,
+        "reduction": "36.6",
+        "naiveMs": 7,
+        "coldMs": 9,
+        "warmMs": 2,
+        "speedup": "4.5",
+        "header": "Found 111 match(es) in 5 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 195,
+        "tokens": 2887,
+        "ms": 10,
+        "symbolsPerFile": "7.2"
+      },
+      "totalMs": 35
+    },
+    {
+      "repo": "Simulation",
+      "path": "E:/15. Other/Simulation",
+      "files": 260,
+      "codeFiles": 201,
+      "language": ".ts",
+      "pattern": "function ",
+      "encoding": {
+        "utf8": 201
+      },
+      "search": {
+        "matches": 605,
+        "matchesCapped": false,
+        "naiveTokens": 17063,
+        "toolTokens": 2337,
+        "reduction": "86.3",
+        "naiveMs": 69,
+        "coldMs": 35,
+        "warmMs": 4,
+        "speedup": "8.8",
+        "header": "Found at least 30 match(es); output cap (8 KB) reached after 8 file(s), showing 30. Narrow the pattern or reduce context."
+      },
+      "outline": {
+        "symbols": 630,
+        "tokens": 9041,
+        "ms": 63,
+        "symbolsPerFile": "21.0"
+      },
+      "totalMs": 222
+    },
+    {
+      "repo": "ZeroLantern5D2",
+      "path": "E:/15. Other/ZeroLantern5D2",
+      "files": 937,
+      "codeFiles": 721,
+      "language": ".c",
+      "pattern": "return ",
+      "encoding": {
+        "utf8": 721
+      },
+      "search": {
+        "matches": 6304,
+        "matchesCapped": false,
+        "naiveTokens": 155625,
+        "toolTokens": 1679,
+        "reduction": "98.9",
+        "naiveMs": 183,
+        "coldMs": 215,
+        "warmMs": 67,
+        "speedup": "3.2",
+        "header": "Found 6304 match(es) in 6 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 1388,
+        "tokens": 19248,
+        "ms": 104,
+        "symbolsPerFile": "46.3"
+      },
+      "totalMs": 711
+    },
+    {
+      "repo": "Mobile",
+      "path": "E:/15. Other/Mobile",
+      "files": 83,
+      "codeFiles": 66,
+      "language": ".kt",
+      "pattern": "fun ",
+      "encoding": {
+        "utf8": 66
+      },
+      "search": {
+        "matches": 104,
+        "matchesCapped": false,
+        "naiveTokens": 4830,
+        "toolTokens": 2355,
+        "reduction": "51.2",
+        "naiveMs": 12,
+        "coldMs": 28,
+        "warmMs": 1,
+        "speedup": "28.0",
+        "header": "Found at least 25 match(es); output cap (8 KB) reached after 10 file(s), showing 25. Narrow the pattern or reduce context."
+      },
+      "outline": {
+        "symbols": 164,
+        "tokens": 3442,
+        "ms": 32,
+        "symbolsPerFile": "5.5"
+      },
+      "totalMs": 108
+    },
+    {
+      "repo": "dotnet",
+      "path": "E:/15. Other/dotnet",
+      "files": 161,
+      "codeFiles": 85,
+      "language": ".cs",
+      "pattern": "public ",
+      "encoding": {
+        "utf8": 85
+      },
+      "search": {
+        "matches": 708,
+        "matchesCapped": false,
+        "naiveTokens": 26249,
+        "toolTokens": 2288,
+        "reduction": "91.3",
+        "naiveMs": 23,
+        "coldMs": 40,
+        "warmMs": 8,
+        "speedup": "5.0",
+        "header": "Found 708 match(es) in 2 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 474,
+        "tokens": 8050,
+        "ms": 38,
+        "symbolsPerFile": "15.8"
+      },
+      "totalMs": 137
+    },
+    {
+      "repo": "grand-strategy-rpg",
+      "path": "E:/15. Other/grand-strategy-rpg",
+      "files": 129,
+      "codeFiles": 82,
+      "language": ".cs",
+      "pattern": "public ",
+      "encoding": {
+        "utf8": 82
+      },
+      "search": {
+        "matches": 897,
+        "matchesCapped": false,
+        "naiveTokens": 36678,
+        "toolTokens": 2375,
+        "reduction": "93.5",
+        "naiveMs": 23,
+        "coldMs": 16,
+        "warmMs": 2,
+        "speedup": "8.0",
+        "header": "Found at least 26 match(es); output cap (8 KB) reached after 4 file(s), showing 26. Narrow the pattern or reduce context."
+      },
+      "outline": {
+        "symbols": 461,
+        "tokens": 8569,
+        "ms": 23,
+        "symbolsPerFile": "15.4"
+      },
+      "totalMs": 90
+    },
+    {
+      "repo": "ZPanl",
+      "path": "E:/15. Other/ZeroUniverse/ZeroApps/ZPanl",
+      "files": 41,
+      "codeFiles": 30,
+      "language": ".rs",
+      "pattern": "fn ",
+      "encoding": {
+        "utf8": 30
+      },
+      "search": {
+        "matches": 144,
+        "matchesCapped": false,
+        "naiveTokens": 4371,
+        "toolTokens": 2001,
+        "reduction": "54.2",
+        "naiveMs": 8,
+        "coldMs": 11,
+        "warmMs": 3,
+        "speedup": "3.7",
+        "header": "Found 144 match(es) in 4 file(s), showing 30 (capped; narrow the pattern or set maxMatches)"
+      },
+      "outline": {
+        "symbols": 295,
+        "tokens": 4196,
+        "ms": 12,
+        "symbolsPerFile": "9.8"
+      },
+      "totalMs": 40
+    }
+  ],
+  "report": "# Real-repository benchmark\n\nGenerated 2026-10-29T04:09:04.166Z | 9 repositories | 3.6 chars/token\n\n| Repo | Lang | Code files | Naive (tok) | Tool (tok) | Saved | Cold ms | Warm ms | Outline sym | Encodings |\n|---|---|---:|---:|---:|---:|---:|---:|---:|---|\n| go | .go | 49 | 13,159 | 1,719 | 86.9% | 22 | 5 | 576 | - |\n| php | .php | 291 | 57,998 | 2,109 | 96.4% | 74 | 21 | 626 | - |\n| Recoit | .py | 27 | 3,013 | 1,910 | 36.6% | 9 | 2 | 195 | - |\n| Simulation | .ts | 201 | 17,063 | 2,337 | 86.3% | 35 | 4 | 630 | - |\n| ZeroLantern5D2 | .c | 721 | 155,625 | 1,679 | 98.9% | 215 | 67 | 1388 | - |\n| Mobile | .kt | 66 | 4,830 | 2,355 | 51.2% | 28 | 1 | 164 | - |\n| dotnet | .cs | 85 | 26,249 | 2,288 | 91.3% | 40 | 8 | 474 | - |\n| grand-strategy-rpg | .cs | 82 | 36,678 | 2,375 | 93.5% | 16 | 2 | 461 | - |\n| ZPanl | .rs | 30 | 4,371 | 2,001 | 54.2% | 11 | 3 | 295 | - |\n\nNotes:\n- Naive = every matching line from every text file, the equivalent of `grep -rn` with no cap.\n- Tool = the search tool with 30 matches and 2 context lines, cold cache.\n- Warm = a second identical search with the 30s file-list cache.\n- Outline = up to 30 largest source files, 60 symbols per file."
+}

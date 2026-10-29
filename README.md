@@ -34,7 +34,7 @@ Token estimates use 3.6 chars/token for code and 4 for logs. Rows marked *real* 
 
 The last row is the honest floor: when the build already runs with `-v:q` and fails early, there is little to compress. The plugin earns its keep on large files, repo-wide searches, and warning-heavy builds.
 
-Its own permanent cost is about **730 tokens per session** (5 MCP tool schemas ≈ 578, skill and agent descriptions ≈ 154). One blocked 38k-token read pays for a month of that.
+Its own permanent cost is about **780 tokens per session** (5 MCP tool schemas ≈ 626, skill and agent descriptions ≈ 154). One blocked 38k-token read pays for a month of that.
 
 See [`bench/RESULTS.md`](bench/RESULTS.md) for the generated report.
 
@@ -67,7 +67,7 @@ The guard also never auto-approves a tool. It can only deny with a reason, so yo
 | Hook `PreToolUse` | Blocks unbound `Read` of files over 128 KB, `cat`/`Get-Content` of large files, `grep -r` without `-l`/`-m`, `git log -p` without `-n`. |
 | Hook `PostToolUse` | Warns once when the same tool call repeats three times with identical input. |
 | Skill `token-diet` | The behaviour rules that make the cheap path the default. |
-| Commands `/build`, `/diet` | Manual entry points for the two most-used tools. |
+| Commands `/build`, `/diet`, `/saved` | Manual entry points: compact build, baseline report, savings ledger. |
 
 ## Install
 
@@ -129,14 +129,40 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 
 Edits take effect on the next tool call.
 
-The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); the two files are deep-merged, user values win.
+The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); per-repository overrides go in `<repo>/.token-diet.json`. Files are deep-merged, the most specific wins.
+
+## Savings ledger
+
+Every blocked call and every MCP tool call is appended to `~/.zcode/token-diet/ledger.jsonl` (override the directory with `TOKEN_DIET_DATA`). `/saved [days]` summarises it. The ledger is local, append-only, rotates once at 5 MB, and an append costs about 0.35 ms. It records what the plugin saw, not provider-reported usage.
+
+## Measured on real repositories
+
+Nine repositories from a mixed-language workspace, one query per repo, cold cache. Naive is every matching line (a `grep -rn` with no cap).
+
+| Repo | Lang | Code files | Naive | Tool | Saved | Cold ms |
+|---|---|---:|---:|---:|---:|---:|
+| ZeroLantern5D2 | C | 721 | 155,625 | 1,679 | 98.9% | 215 |
+| php | PHP | 291 | 57,998 | 2,109 | 96.4% | 74 |
+| grand-strategy-rpg | C# | 82 | 36,678 | 2,375 | 93.5% | 16 |
+| dotnet | C# | 85 | 26,249 | 2,288 | 91.3% | 40 |
+| go | Go | 49 | 13,159 | 1,719 | 86.9% | 22 |
+| Simulation | TS | 201 | 17,063 | 2,337 | 86.3% | 35 |
+| ZPanl | Rust | 30 | 4,371 | 2,001 | 54.2% | 11 |
+| Mobile | Kotlin | 66 | 4,830 | 2,355 | 51.2% | 28 |
+| Recoit | Python | 27 | 3,013 | 1,910 | 36.6% | 9 |
+
+The low rows are the honest ones: when a repo has few matches, the 30-match cap never binds and two context lines per match dominate. Cold search stays under 220 ms on every repo, so an on-disk index is not worth its complexity at this scale.
+
+Hook overhead on Windows: **70 ms per guarded call**, almost entirely Node process spawn; the ledger append is 0.35 ms. A session with 50 tool calls pays roughly 3.5–7 seconds of hook latency.
 
 ## Benchmark
 
 ```sh
-npm test                          # guard, languages, build parser, gitignore/UTF-16, runner
+npm test                          # guard, ledger, languages, build parser, gitignore/UTF-16, runner
 node bench/mcp-smoke.mjs          # MCP handshake + all five tools
 node bench/measure.mjs            # synthetic scenarios, writes bench/RESULTS.md
+node bench/repo-bench.mjs         # real repositories (set TOKEN_DIET_BENCH_REPOS)
+node bench/hook-bench.mjs         # hook spawn latency and ledger cost
 ```
 
 Real solutions are opt-in so the harness stays portable:
@@ -166,6 +192,9 @@ On Windows, prefix with the variables in PowerShell (`$env:TOKEN_DIET_REAL_SLN="
 - UTF-16 without a BOM is inferred from NUL-byte parity; unusual files may be classified as binary.
 - `run` uses fixed commands per ecosystem. It cannot run an arbitrary command, and a project whose test script is named unusually needs Bash.
 - The plugin cannot reduce the baseline cost of your other skills and plugins — use `/diet` and disable what you do not use.
+- Hook latency is real: about 70 ms per guarded tool call on Windows, because every event spawns a process.
+- Search savings fall to ~36% when matches are sparse; two context lines per match cost more than the matches themselves.
+- The ledger measures blocked bytes, not provider tokens; it has no idea what the model would actually have done with the file.
 
 ## License
 

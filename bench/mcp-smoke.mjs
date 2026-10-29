@@ -46,7 +46,11 @@ fs.writeFileSync(
   ].join("\n")
 );
 
-const child = spawn(process.execPath, [server], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
+const child = spawn(process.execPath, [server], {
+  cwd: root,
+  stdio: ["pipe", "pipe", "pipe"],
+  env: { ...process.env, TOKEN_DIET_DATA: path.join(os.tmpdir(), "token-diet-smoke-ledger") },
+});
 let buf = "";
 const pending = new Map();
 let nextId = 1;
@@ -110,6 +114,10 @@ try {
   const diet = await rpc("tools/call", { name: "diet", arguments: {} });
   const dText = diet.result?.content?.[0]?.text || "";
   out.push(`diet -> ${dText.split("\n").find((l) => l.startsWith("TOTAL")) || "(no total)"}`);
+
+  const savings = await rpc("tools/call", { name: "diet", arguments: { scope: "savings", days: 1 } });
+  const savText = savings.result?.content?.[0]?.text || "";
+  out.push(`diet savings -> ${savText.split("\n")[0] || "(empty)"} / ${savText.split("\n").find((l) => l.startsWith("Blocked")) || "no blocked line"}`);
 
   const bad = await rpc("tools/call", { name: "nope", arguments: {} });
   out.push(`unknown tool -> isError=${bad.result?.isError}`);

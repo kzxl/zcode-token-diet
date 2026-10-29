@@ -149,10 +149,10 @@ export function search(opts) {
   let totalMatches = 0;
   const hitFiles = new Set();
   let bytes = 0;
-  let capped = false;
+  let stoppedEarly = false;
 
   for (const f of files) {
-    if (capped) break;
+    if (stoppedEarly) break;
     let stat;
     try {
       stat = fs.statSync(f);
@@ -182,16 +182,18 @@ export function search(opts) {
       }
       out.push("");
       if (bytes >= maxBytes) {
-        capped = true;
-        matches = maxMatches;
+        stoppedEarly = true;
         break;
       }
     }
   }
 
-  const header =
-    `Found ${totalMatches} match(es) in ${hitFiles.size} file(s)` +
-    (totalMatches > matches ? `, showing ${matches} (capped; narrow the pattern or set maxMatches)` : "");
+  // A byte-cap stop means the scan never finished, so the count is a lower bound.
+  const header = stoppedEarly
+    ? `Found at least ${totalMatches} match(es); output cap (${Math.round(maxBytes / 1024)} KB) reached after ` +
+      `${hitFiles.size} file(s), showing ${matches}. Narrow the pattern or reduce context.`
+    : `Found ${totalMatches} match(es) in ${hitFiles.size} file(s)` +
+      (totalMatches > matches ? `, showing ${matches} (capped; narrow the pattern or set maxMatches)` : "");
   if (out.length === 0) return { text: `${header}\nNo matching lines.`, stats: { matches: 0 } };
   return { text: `${header}\n\n${out.join("\n").trimEnd()}`, stats: { matches } };
 }

@@ -24,7 +24,7 @@ Mỗi ký tự tool trả về đều tốn token, và còn tốn lại ở các
 
 Dòng cuối là giới hạn thật: khi build đã chạy `-v:q` và fail sớm thì gần như không còn gì để nén. Plugin có lãi ở file lớn, tìm kiếm toàn repo và build nhiều warning.
 
-Chi phí thường trực của chính plugin khoảng **730 token mỗi session** (5 tool schema ≈ 578, description skill và agent ≈ 154).
+Chi phí thường trực của chính plugin khoảng **780 token mỗi session** (5 tool schema ≈ 626, description skill và agent ≈ 154).
 
 ## Cài đặt
 
@@ -69,6 +69,12 @@ Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc đ�
 
 Các khoá mới: `search.respectGitignore` (mặc định `true`), `search.cacheTtlMs` (30000), `search.cacheMaxBytes` (32 MB), `run.timeoutMs` (600000).
 
+Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắng file user.
+
+## Ledger tiết kiệm
+
+Mỗi lần guard chặn và mỗi lần gọi MCP tool được ghi vào `~/.zcode/token-diet/ledger.jsonl` (đổi thư mục bằng `TOKEN_DIET_DATA`). `/saved [số ngày]` tổng hợp lại. Ghi ledger tốn ~0,35 ms; file local, tự xoay vòng ở 5 MB.
+
 ## Giới hạn
 
 - Không tiết kiệm gì trong hội thoại ngắn.
@@ -77,6 +83,9 @@ Các khoá mới: `search.respectGitignore` (mặc định `true`), `search.cach
 - `.gitignore` chỉ hỗ trợ tập con phổ biến; trỏ thẳng vào thư mục bị ignore vẫn tìm được.
 - UTF-16 không BOM được suy đoán từ vị trí byte NUL; file lạ có thể bị coi là nhị phân.
 - `run` dùng lệnh cố định, không chạy lệnh tuỳ ý.
+- Mỗi hook tốn ~70 ms trên Windows do spawn process; session 50 tool call tốn 3,5–7 giây chờ.
+- Với repo ít match, tiết kiệm chỉ còn ~36% vì 2 dòng context mỗi match tốn hơn chính dòng match.
+- Ledger đo bytes bị chặn, không phải token provider báo.
 - Hook chạy quyền user trên mọi tool call; đọc script trước khi bật.
 
 ## Benchmark
@@ -86,6 +95,8 @@ npm test                          # guard, config override, outline đa ngôn ng
 node bench/mcp-smoke.mjs
 node bench/measure.mjs
 TOKEN_DIET_ERP_SLN=/path/to/Legacy.sln node bench/measure.mjs
+TOKEN_DIET_BENCH_REPOS="/repo/a;/repo/b" node bench/repo-bench.mjs
+node bench/hook-bench.mjs
 ```
 
 Chi tiết xem [README.md](README.md).
