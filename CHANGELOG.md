@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+- Panel: Reload button and auto-refresh interval (off / 3s / 5s / 10s / 30s,
+  remembered in localStorage). Refresh calls `diet({scope:"panel"})` through the
+  MCP Apps bridge and re-renders in place.
+- `diet scope=panel` returns structured metrics for the panel.
+- Panel refreshes are not written to the ledger, so watching the dashboard does
+  not inflate its own numbers.
+
 ## 0.5.4
 
 - The panel now speaks the MCP Apps handshake: it sends `ui/initialize` to the

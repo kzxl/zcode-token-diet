@@ -73,7 +73,7 @@ Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắn
 
 ## Panel (thử nghiệm)
 
-Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: token giữ khỏi context là số chính, kèm trung bình mỗi file, số lần chặn, số file, tool call, lượng output trong 24 giờ và các lần chặn gần nhất kèm kích thước. Không tốn token hội thoại; mở lại panel là số liệu và thời điểm cập nhật được làm mới.
+Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: token giữ khỏi context là số chính, kèm trung bình mỗi file, số lần chặn, số file, tool call, lượng output trong 24 giờ và các lần chặn gần nhất kèm kích thước. Không tốn token hội thoại. Nút **Reload** và mục auto-refresh (tắt / 3s / 5s / 10s / 30s, được ghi nhớ) gọi tool dữ liệu qua cầu MCP Apps, nên số liệu cập nhật tại chỗ mà không cần tải lại trang. Các lần refresh không ghi vào ledger.
 
 ZCode coi surface của plugin là **panel mở thủ công**: nó không tự mở, kể cả khi kết quả tool yêu cầu inline. Plugin tài liệu chính thức cũng vậy. Mở panel **Token Diet** một lần từ panel bên phải; sau đó chỉ tốn một click và không tốn token hội thoại. `/saved` luôn trả báo cáo text, nên không mất gì khi panel đóng.
 

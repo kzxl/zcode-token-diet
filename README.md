@@ -133,7 +133,7 @@ The shipped `scripts/config.json` lives in the installed plugin and is replaced 
 
 ## Panel (experimental)
 
-The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: tokens kept out of context as the headline, the average per file block, blocks, distinct files, tool calls and tool output for the last 24 hours, plus the most recent blocks with their size. It costs no conversation tokens, and reopening it refreshes the numbers and the update time.
+The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: tokens kept out of context as the headline, the average per file block, blocks, distinct files, tool calls and tool output for the last 24 hours, plus the most recent blocks with their size. It costs no conversation tokens. A **Reload** button and an auto-refresh interval (off / 3s / 5s / 10s / 30s, remembered) call the panel data tool through the MCP Apps bridge, so the numbers update in place without reloading the page. Panel refreshes are not written to the ledger.
 
 ZCode treats plugin surfaces as **manually opened panels**: it does not auto-open them, even when a tool result requests inline display. The official document plugins behave the same way. Open the **Token Diet** panel once from the side panel; after that it is one click, and it costs no conversation tokens. `/saved` always returns the text report, so nothing is lost if the panel is closed. The inline metadata is kept for hosts that support it.
 

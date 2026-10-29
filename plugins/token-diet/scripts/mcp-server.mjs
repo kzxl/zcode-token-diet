@@ -32,7 +32,7 @@ function fmtTokens(chars) {
 // The panel is an MCP App: the host reads this resource and renders the HTML in
 // a sandboxed iframe. Content is rebuilt on every read, so reopening it is a
 // refresh. No conversation tokens are involved.
-function panelHtml() {
+function panelMetrics() {
   const entries = readLedger(1);
   const denies = entries.filter((e) => e.t === "deny");
   const tools = entries.filter((e) => e.t === "tool");
@@ -41,8 +41,6 @@ function panelHtml() {
   const sized = denies.filter((d) => (d.bytes || 0) > 0);
   const avg = sized.length ? blocked / sized.length : 0;
   const files = new Set(denies.map((d) => d.file).filter(Boolean)).size;
-  const recent = [...denies].reverse().slice(0, 3);
-  const updated = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const EVENT_LABEL = {
     grep: "recursive grep",
     "git-log": "git log -p",
@@ -51,12 +49,27 @@ function panelHtml() {
     cat: "cat",
     readall: "ReadAllText",
   };
-  const rows = recent
-    .map((d) => {
-      const label = d.file || EVENT_LABEL[d.event] || d.event || "block";
-      const size = d.bytes > 0 ? fmtTokens(d.bytes) : "—";
-      return `<li><span title="${esc(label)}">${esc(label)}</span><b>${size}</b></li>`;
-    })
+  const recent = [...denies].reverse().slice(0, 3).map((d) => ({
+    label: d.file || EVENT_LABEL[d.event] || d.event || "block",
+    bytes: d.bytes || 0,
+  }));
+  return {
+    blockedCalls: denies.length,
+    blockedBytes: blocked,
+    avgBytes: avg,
+    files,
+    toolCalls: tools.length,
+    outChars,
+    recent,
+    updatedAt: Date.now(),
+  };
+}
+
+function panelHtml() {
+  const m = panelMetrics();
+  const updated = new Date(m.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const rows = m.recent
+    .map((r) => `<li><span title="${esc(r.label)}">${esc(r.label)}</span><b>${r.bytes > 0 ? fmtTokens(r.bytes) : "-"}</b></li>`)
     .join("");
 
   return `<!doctype html>
@@ -68,7 +81,12 @@ function panelHtml() {
 *{box-sizing:border-box}html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:14px}
 h1{font-size:15px;margin:0}
-.sub{color:var(--mut);font-size:11px;margin:2px 0 14px}
+.sub{color:var(--mut);font-size:11px;margin:2px 0 10px}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+button,select{font:inherit;font-size:11.5px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:4px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+.status{color:var(--mut);font-size:10.5px;margin-left:auto}
 .hero{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
 .hero .v{font-size:32px;font-weight:680;letter-spacing:-.02em;color:var(--accent);line-height:1.1}
 .hero .k{font-size:12px;margin-top:2px}
@@ -90,30 +108,41 @@ li b{flex:none;color:var(--accent);font-weight:600;font-variant-numeric:tabular-
 <body>
 <h1>Token Diet</h1>
 <div class="sub">Last 24 hours · updated ${updated}</div>
+<div class="bar">
+  <button id="reload" type="button">Reload</button>
+  <select id="interval" aria-label="Auto refresh interval">
+    <option value="0">Auto: off</option>
+    <option value="3000">Auto: 3s</option>
+    <option value="5000">Auto: 5s</option>
+    <option value="10000">Auto: 10s</option>
+    <option value="30000">Auto: 30s</option>
+  </select>
+  <span id="status" class="status"></span>
+</div>
 <div class="hero">
-  <div class="v">${fmtTokens(blocked)}</div>
+  <div class="v" id="hero">${fmtTokens(m.blockedBytes)}</div>
   <div class="k">tokens kept out of context</div>
-  <div class="u">${denies.length} blocked call${denies.length === 1 ? "" : "s"}${sized.length ? ` · avg ${fmtTokens(avg)} per file block` : ""} · upper bound</div>
+  <div class="u" id="heroSub">${m.blockedCalls} blocked call${m.blockedCalls === 1 ? "" : "s"}${m.avgBytes > 0 ? ` · avg ${fmtTokens(m.avgBytes)} per file block` : ""} · upper bound</div>
 </div>
 <div class="grid">
-  <div class="card"><div class="k">Blocks</div><div class="v">${denies.length}</div></div>
-  <div class="card"><div class="k">Files</div><div class="v">${files}</div></div>
-  <div class="card"><div class="k">Tool calls</div><div class="v">${tools.length}</div></div>
-  <div class="card"><div class="k">Tool output</div><div class="v">${fmtTokens(outChars)}</div><div class="u">tokens</div></div>
+  <div class="card"><div class="k">Blocks</div><div class="v" id="blocks">${m.blockedCalls}</div></div>
+  <div class="card"><div class="k">Files</div><div class="v" id="files">${m.files}</div></div>
+  <div class="card"><div class="k">Tool calls</div><div class="v" id="calls">${m.toolCalls}</div></div>
+  <div class="card"><div class="k">Tool output</div><div class="v" id="output">${fmtTokens(m.outChars)}</div><div class="u">tokens</div></div>
 </div>
 <h2>Blocked recently</h2>
-${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period.</div>'}
-<div class="foot">Local estimate · provider usage is not included · reopen to refresh</div>
+<div id="recentWrap">${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period.</div>'}</div>
+<div class="foot">Local estimate · provider usage is not included · reload or auto-refresh for new numbers</div>
 <script>
 (function () {
-  var pending = {}, nextId = 1, target = window.parent;
+  var pending = {}, nextId = 1, target = window.parent, timer = null;
   function send(msg) { try { target.postMessage(msg, "*"); } catch (e) {} }
   window.addEventListener("message", function (e) {
-    var m = e.data;
-    if (!m || typeof m !== "object" || m.jsonrpc !== "2.0") return;
-    if (m.id !== undefined && pending[m.id]) {
-      var p = pending[m.id]; delete pending[m.id];
-      if (m.error) p.reject(new Error(m.error.message || "error")); else p.resolve(m.result);
+    var msg = e.data;
+    if (!msg || typeof msg !== "object" || msg.jsonrpc !== "2.0") return;
+    if (msg.id !== undefined && pending[msg.id]) {
+      var p = pending[msg.id]; delete pending[msg.id];
+      if (msg.error) p.reject(new Error(msg.error.message || "error")); else p.resolve(msg.result);
     }
   });
   function request(method, params) {
@@ -124,10 +153,61 @@ ${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period
       setTimeout(function () { if (pending[id]) { delete pending[id]; reject(new Error("timeout")); } }, 8000);
     });
   }
+  function fmt(chars) { var t = chars / 3.6; return t >= 1000 ? (t / 1000).toFixed(1) + "k" : String(Math.round(t)); }
+  function esc(v) {
+    return String(v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
+  function render(d) {
+    setText("hero", fmt(d.blockedBytes));
+    setText("heroSub", d.blockedCalls + " blocked call" + (d.blockedCalls === 1 ? "" : "s") +
+      (d.avgBytes > 0 ? " · avg " + fmt(d.avgBytes) + " per file block" : "") + " · upper bound");
+    setText("blocks", d.blockedCalls);
+    setText("files", d.files);
+    setText("calls", d.toolCalls);
+    setText("output", fmt(d.outChars));
+    var wrap = document.getElementById("recentWrap");
+    if (wrap) {
+      wrap.innerHTML = (!d.recent || !d.recent.length)
+        ? '<div class="empty">Nothing blocked in this period.</div>'
+        : "<ul>" + d.recent.map(function (r) {
+            var size = r.bytes > 0 ? fmt(r.bytes) : "-";
+            return '<li><span title="' + esc(r.label) + '">' + esc(r.label) + "</span><b>" + size + "</b></li>";
+          }).join("") + "</ul>";
+    }
+    setText("status", "updated " + new Date(d.updatedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  }
+  function refresh() {
+    return request("tools/call", { name: "diet", arguments: { scope: "panel" } })
+      .then(function (r) {
+        var d = r && (r.structuredContent || r.structured_content);
+        if (d) render(d); else setText("status", "no data");
+      })
+      .catch(function () { setText("status", "reload failed"); });
+  }
+  function applyInterval(ms) {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (ms > 0) timer = setInterval(refresh, ms);
+  }
   function sizeChanged() {
     send({ jsonrpc: "2.0", method: "ui/notifications/size-changed", params: {
       width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight
     }});
+  }
+  var reload = document.getElementById("reload");
+  if (reload) reload.addEventListener("click", refresh);
+  var sel = document.getElementById("interval");
+  if (sel) {
+    try { var saved = localStorage.getItem("tokenDietInterval"); if (saved) sel.value = saved; } catch (e) {}
+    applyInterval(Number(sel.value) || 0);
+    sel.addEventListener("change", function () {
+      var ms = Number(sel.value) || 0;
+      try { localStorage.setItem("tokenDietInterval", String(ms)); } catch (e) {}
+      applyInterval(ms);
+      if (ms > 0) refresh();
+    });
   }
   request("ui/initialize", {
     appInfo: { name: "token-diet", version: "${version}" },
@@ -137,7 +217,10 @@ ${rows ? `<ul>${rows}</ul>` : '<div class="empty">Nothing blocked in this period
     send({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} });
     sizeChanged();
     window.addEventListener("resize", sizeChanged);
-  }).catch(function () {});
+    refresh();
+  }).catch(function () {
+    setText("status", "host bridge unavailable");
+  });
 })();
 </script>
 </body></html>`;
@@ -209,7 +292,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        scope: { type: "string", description: "context (default) or savings" },
+        scope: { type: "string", description: "context (default), savings, or panel" },
         days: { type: "number", description: "savings window in days, default 1" },
       },
     },
@@ -247,6 +330,13 @@ async function callTool(name, args) {
       return runAction(a, config);
     case "diet":
       if (a.scope === "savings") return savingsReport(a.days || 1);
+      if (a.scope === "panel") {
+        const m = panelMetrics();
+        return {
+          text: `blocked ${m.blockedCalls} calls, kept out ~${Math.round(m.blockedBytes / 3.6)} tokens`,
+          structuredContent: m,
+        };
+      }
       return dietReport(process.env.ZCODE_WORKSPACE_ROOT || process.cwd());
     default:
       throw new Error(`unknown tool: ${name}`);
@@ -333,14 +423,18 @@ rl.on("line", async (line) => {
     const started = Date.now();
     try {
       const out = await callTool(name, params?.arguments);
-      appendLedger({
-        t: "tool",
-        tool: name,
-        outChars: out.text?.length || 0,
-        inChars: JSON.stringify(params?.arguments || {}).length,
-        ms: Date.now() - started,
-      });
+      const isPanelRefresh = name === "diet" && params?.arguments?.scope === "panel";
+      if (!isPanelRefresh) {
+        appendLedger({
+          t: "tool",
+          tool: name,
+          outChars: out.text?.length || 0,
+          inChars: JSON.stringify(params?.arguments || {}).length,
+          ms: Date.now() - started,
+        });
+      }
       const payload = { content: [{ type: "text", text: out.text }], isError: false };
+      if (out.structuredContent) payload.structuredContent = out.structuredContent;
       // MCP Apps: a tool result can point at a UI resource; the host renders it.
       // `diet scope=savings` is the natural trigger for the ledger panel.
       if (name === "diet" && params?.arguments?.scope === "savings") {

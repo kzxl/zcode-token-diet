@@ -130,6 +130,13 @@ try {
   out.push(`resources/read -> ${content.mimeType || "(no mime)"}, ${(content.text || "").length} chars`);
   out.push(`panel contains title -> ${/<h1>Token Diet<\/h1>/.test(content.text || "")}`);
   out.push(`panel handshake -> ${/ui\/initialize/.test(content.text || "") && /ui\/notifications\/initialized/.test(content.text || "")}`);
+  out.push(`panel controls -> reload=${/>Reload</.test(content.text || "")} interval=${/Auto: 5s/.test(content.text || "")} bridge=${/tools\/call/.test(content.text || "")}`);
+
+  const p1 = await rpc("tools/call", { name: "diet", arguments: { scope: "panel" } });
+  const c1 = p1.result?.structuredContent?.toolCalls;
+  const p2 = await rpc("tools/call", { name: "diet", arguments: { scope: "panel" } });
+  const c2 = p2.result?.structuredContent?.toolCalls;
+  out.push(`panel refresh is not logged -> ${typeof c1 === "number" && c1 === c2}`);
 
   const bad = await rpc("tools/call", { name: "nope", arguments: {} });
   out.push(`unknown tool -> isError=${bad.result?.isError}`);
