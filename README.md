@@ -135,7 +135,7 @@ The shipped `scripts/config.json` lives in the installed plugin and is replaced 
 
 The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: blocked calls, tokens kept out of context, tool calls and tool output for the last 24 hours. It costs no conversation tokens, and reopening it refreshes the numbers.
 
-This is the same MCP Apps mechanism the official document plugins use. The manifest surface alone does not open by itself, so `/saved` also asks for an inline render (`_meta.ui.showInline` plus `preferredDisplayMode: "inline"`). The side-panel entry can still be opened manually. Treat it as experimental: if the panel does not appear, the text report still works.
+ZCode treats plugin surfaces as **manually opened panels**: it does not auto-open them, even when a tool result requests inline display. The official document plugins behave the same way. Open the **Token Diet** panel once from the side panel; after that it is one click, and it costs no conversation tokens. `/saved` always returns the text report, so nothing is lost if the panel is closed. The inline metadata is kept for hosts that support it.
 
 ## Savings ledger
 

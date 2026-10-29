@@ -101,6 +101,7 @@ and the chosen configuration.
 | Bundled ripgrep | Faster search, but search is already the cheap part; adds per-platform binaries and licensing surface. |
 | More ecosystems in `run` | Only useful if those toolchains are actually used. `npm`, `cargo`, `go`, `maven`, `gradle`, `make` and `pytest` cover the common cases. |
 | Desktop overlay / statusbar | No supported UI injection for third-party plugins; an external overlay is a separate product. |
+| Auto-open the panel | ZCode does not auto-open plugin surfaces; the official document panels are manual too. Blocked on the host. Alternative if needed: an opt-in OS toast at `Stop`, which costs no conversation tokens. |
 
 ## Non-goals
 
