@@ -4,6 +4,7 @@
     "read": {
       "maxBytes": 131072,
       "suggestLines": 200,
+      "maxLimitLines": 400,
       "mode": "deny"
     },
     "bash": {
@@ -23,5 +24,8 @@
     "msbuildPath": "",
     "configuration": "Debug",
     "platform": "Any CPU"
+  },
+  "search": {
+    "extensions": []
   }
 }

@@ -8,13 +8,11 @@ import { fileURLToPath } from "node:url";
 import { outline, search } from "./lib/scan.mjs";
 import { runBuild } from "./lib/build.mjs";
 import { dietReport } from "./lib/diet.mjs";
+import { loadConfig } from "./lib/config.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-let config = {};
-try {
-  config = JSON.parse(fs.readFileSync(path.join(here, "config.json"), "utf8"));
-} catch {}
-let version = "0.1.0";
+const config = loadConfig(here);
+let version = "0.2.0";
 try {
   version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
 } catch {}
@@ -90,7 +88,7 @@ async function callTool(name, args) {
     case "outline":
       return outline(a.path || ".", a);
     case "search":
-      return search(a);
+      return search({ ...a, extensions: config.search?.extensions || [] });
     case "build":
       return runBuild(a, config);
     case "diet":

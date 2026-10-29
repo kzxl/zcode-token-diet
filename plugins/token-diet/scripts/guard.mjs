@@ -5,17 +5,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadConfig } from "./lib/config.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const cfg = loadConfig(path.join(here, "config.json"));
-
-function loadConfig(p) {
-  try {
-    return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch {
-    return { guard: { enabled: false } };
-  }
-}
+const cfg = loadConfig(here);
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -115,20 +108,27 @@ async function main() {
   if (tool === "Read") {
     const r = g.read || {};
     const maxBytes = r.maxBytes ?? 131072;
+    const maxLimitLines = r.maxLimitLines ?? 400;
     const p = input.file_path;
-    const hasLimit = typeof input.limit === "number" && input.limit > 0;
-    if (p && !hasLimit) {
+    const limit = typeof input.limit === "number" ? input.limit : null;
+    const hasLimit = limit !== null && limit > 0;
+    // A huge explicit limit is the same thing as no limit; check the value too.
+    const tooBig = hasLimit && limit > maxLimitLines;
+    if (p && (!hasLimit || tooBig)) {
       const size = fileSize(resolveExisting(p, ev.cwd || process.cwd()));
       if (size > maxBytes) {
         const name = path.basename(p);
+        const kb = Math.round(size / 1024);
         const lines = approxLines(size);
-        const suggest = r.suggestLines ?? 200;
-        deny(
-          `token-diet blocked a full read of ${name} (${Math.round(size / 1024)} KB, ~${lines} lines). ` +
-            `This single call would add roughly ${Math.round(size / 3.6 / 1000)}k tokens. ` +
-            `Use the token-diet "outline" tool, or if you have no MCP tools, locate the part you need with ` +
-            `grep -n -m 20 "<symbol>" ${name}, then Read with limit=${suggest} and an offset.`
-        );
+        const approxK = Math.round(size / 3.6 / 1000);
+        const suggest = r.suggestLines ?? maxLimitLines;
+        const reason = tooBig
+          ? `token-diet blocked Read with limit=${limit}: on ${name} (${kb} KB, ~${lines} lines) that is effectively a full read (~${approxK}k tokens). ` +
+            `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool.`
+          : `token-diet blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens. ` +
+            `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool; ` +
+            `if you have no MCP tools, locate what you need with grep -n -m 20 "<symbol>" ${name}.`;
+        deny(reason);
       }
     }
   }
@@ -141,17 +141,33 @@ async function main() {
     if (!cmd) return;
 
     if (b.denyRecursiveGrep !== false) {
-      const recursive = /\bgrep\s+(-\S*r\S*|--recursive)\b/.test(cmd);
+      const recursiveGrep = /\bgrep\s+(-\S*r\S*|--recursive)\b/.test(cmd);
+      const recursiveFindstr = /\bfindstr\s+\/s\b/i.test(cmd) && !/\/m\b/i.test(cmd);
+      const rg = /\brg\b/.test(cmd);
       const bounded =
         /\bgrep\s+-\S*l/.test(cmd) ||
+        /(?:^|\s)-[a-zA-Z]*l[a-zA-Z]*(?=\s|$)/.test(cmd) ||
         /--files-with-matches/.test(cmd) ||
         /\s-m\s*\d/.test(cmd) ||
         /--max-count/.test(cmd) ||
         /\|\s*head\b/.test(cmd);
-      if (recursive && !bounded) {
+      const rgBounded =
+        /\s-l\b/.test(cmd) || /--files-with-matches/.test(cmd) || /\s-m\s*\d/.test(cmd) || /--max-count/.test(cmd) || /\|\s*head\b/.test(cmd);
+      if (recursiveGrep && !bounded) {
         deny(
           `token-diet blocked an unbounded recursive grep. Add -m 5 or -l, pipe through head, ` +
             `or use the token-diet "search" tool (returns file:line with 2 context lines, capped at 8 KB).`
+        );
+      }
+      if (recursiveFindstr) {
+        deny(
+          `token-diet blocked "findstr /s" without /m. Add /m, or use the token-diet "search" tool.`
+        );
+      }
+      if (rg && !rgBounded) {
+        deny(
+          `token-diet blocked rg without a cap. Add -l, -m 5, or pipe through head; ` +
+            `or use the token-diet "search" tool.`
         );
       }
     }
@@ -187,6 +203,18 @@ async function main() {
                 : `Read a slice instead: head -n 100, sed -n '1,100p', or the token-diet "search" tool.`)
           );
         }
+      }
+    }
+
+    // PowerShell: [IO.File]::ReadAllText("...") bypasses Get-Content wording.
+    const readAll = cmd.match(/\bReadAllText\(\s*['"]([^'"]+)['"]/i);
+    if (readAll) {
+      const size = fileSize(resolveExisting(readAll[1], ev.cwd || process.cwd()));
+      if (size > (b.catMaxBytes ?? 131072)) {
+        deny(
+          `token-diet blocked ReadAllText on ${path.basename(readAll[1])} (${Math.round(size / 1024)} KB). ` +
+            `Read a slice instead: Get-Content -TotalCount 100, or the token-diet "outline" tool.`
+        );
       }
     }
   }

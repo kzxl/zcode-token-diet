@@ -26,10 +26,10 @@ Token estimates use 3.6 chars/token for code and 4 for logs. Rows marked *real* 
 
 | Scenario | Before | After | Saved |
 |---|---:|---:|---:|
-| Read one large C# file (whole file) | 38,749 | 1,474 | 96.2% |
+| Read one large C# file (whole file) | 38,749 | 1,761 | 95.5% |
 | Find one symbol across the repo (`grep -rn`) | 9,218 | 1,698 | 81.6% |
 | Read a warning-heavy build log | 55,783 | 461 | 99.2% |
-| *real* 59-project .NET Framework solution via MSBuild | 27,258 | 2,048 | 92.5% |
+| *real* 59-project .NET Framework solution via MSBuild | 27,258 | 2,104 | 92.3% |
 | *real* SDK-style solution via `dotnet build` | 1,624 | 1,493 | 8.1% |
 
 The last row is the honest floor: when the build already runs with `-v:q` and fails early, there is little to compress. The plugin earns its keep on large files, repo-wide searches, and warning-heavy builds.
@@ -43,6 +43,16 @@ See [`bench/RESULTS.md`](bench/RESULTS.md) for the generated report.
 ZCode hooks cannot rewrite or truncate tool output, compress conversation history, or touch the system prompt. Those events and keys do not exist. This plugin does not pretend otherwise: it prevents expensive calls, it does not clean up after them.
 
 The guard also never auto-approves a tool. It can only deny with a reason, so your permission rules stay in charge.
+
+## Language support
+
+| Layer | Coverage |
+|---|---|
+| Guard | Any language. It judges file size and shell commands, not syntax. |
+| `search` | Any text file. Binaries and NUL bytes are skipped; UTF-16LE/BE sources are decoded. Optional `search.extensions` narrows the scan. |
+| `outline` | Heuristic declaration detection for C/C++/C#/Java/Kotlin, JS/TS, Python, Ruby, PHP, Go, Rust, Swift, Scala, Dart, shell, Lua, Perl and SQL. It is a regex, not a parser. |
+| `build` | .NET only (MSBuild or `dotnet`). For other ecosystems use their own build command; the tool says what it cannot do instead of guessing. |
+| Skill, agent, `AGENTS.md` sample | Language-agnostic. |
 
 ## Components
 
@@ -95,6 +105,7 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 | `guard.enabled` | `true` | Master switch for the PreToolUse guard. |
 | `guard.read.maxBytes` | `131072` | Files above this are blocked on a read with no `limit`. |
 | `guard.read.suggestLines` | `200` | Limit suggested in the deny reason. |
+| `guard.read.maxLimitLines` | `400` | A larger explicit `limit` on a big file is treated as a full read. |
 | `guard.bash.catMaxBytes` | `131072` | `cat`/`Get-Content` target size that gets blocked. |
 | `guard.bash.denyRecursiveGrep` | `true` | Block `grep -r` without `-l`, `-m`, or `head`. |
 | `guard.bash.denyPatchLog` | `true` | Block `git log -p` without `-n`. |
@@ -105,12 +116,16 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 | `build.msbuildPath` | `""` | Pin MSBuild.exe. |
 | `build.configuration` | `Debug` | Passed to both toolchains. |
 | `build.platform` | `Any CPU` | MSBuild only; SDK builds use their default. |
+| `search.extensions` | `[]` | Empty scans every text file; a list like `[".cs",".ts"]` narrows it. |
 
 Edits take effect on the next tool call.
+
+The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); the two files are deep-merged, user values win.
 
 ## Benchmark
 
 ```sh
+npm test                          # guard branches, config override, multi-language outline
 node bench/mcp-smoke.mjs          # MCP handshake + all four tools
 node bench/measure.mjs            # synthetic scenarios, writes bench/RESULTS.md
 ```

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0
+
+- Guard checks the value of `limit`, not just its presence: `limit=99999` on a
+  large file is blocked like a full read (`guard.read.maxLimitLines`, default 400).
+- Guard also blocks `rg` without a cap, `findstr /s` without `/m`, and
+  PowerShell `[IO.File]::ReadAllText` on large files.
+- Build parser no longer drops code-less errors (`error : ...`), deduplicates
+  identical error lines with a count, and shows the log tail when a failed build
+  produced no recognizable error line. Spawn failures are reported instead of
+  producing a misleading empty summary.
+- `search` is language-agnostic: no extension allowlist by default, binary
+  files and NUL bytes are skipped, and an optional `search.extensions` filter
+  can be set. UTF-16BE/LE sources are decoded instead of mangled.
+- `outline` recognises declarations in C-family, JS/TS, Python, Ruby, PHP, Go,
+  Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL.
+- User-level config override at `~/.zcode/token-diet.config.json` (or
+  `$TOKEN_DIET_CONFIG`) survives plugin updates.
+- New regression tests: `npm test` covers guard branches, config override,
+  loop breaker, multi-language outline and UTF-16 search.
+
 ## 0.1.2
 
 - `build` tool picks its toolchain from project style: legacy .NET Framework

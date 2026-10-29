@@ -13,6 +13,8 @@ Cuts the tokens a coding session spends on file dumps, unbounded greps and raw b
 | Skill `token-diet` | The behaviour rules that make the model choose the cheap path |
 | Commands `/build`, `/diet` | Manual entry points for the two most useful tools |
 
+Language coverage: the guard is language-agnostic; `search` scans any text file and decodes UTF-16; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only.
+
 ## Install
 
 ```text
@@ -27,18 +29,22 @@ Start a new task afterwards. Check **Settings → Plugin Management → token-di
 Edit `scripts/config.json`:
 
 - `guard.read.maxBytes` (default 128 KB) — files above this are blocked on a full read.
+- `guard.read.maxLimitLines` (default 400) — a larger explicit `limit` on a big file is treated as a full read.
 - `guard.bash.denyRecursiveGrep` / `denyPatchLog` — set `false` to stop blocking those.
 - `guard.bash.denyVerboseBuild` (default `false`) — set `true` to force the `build` tool instead of `dotnet build`.
 - `loopBreaker.threshold` (default 3).
 - `build.toolchain` — `auto` (default), `msbuild`, or `dotnet`. `auto` reads the project style: legacy .NET Framework uses MSBuild.exe, SDK-style uses `dotnet build`.
 - `build.msbuildPath` — pin MSBuild.exe; empty means VS 2019 Build Tools first, then other Visual Studio installs, then `vswhere`.
 - `build.configuration` / `build.platform` — defaults `Debug` / `Any CPU` for the MSBuild path. SDK builds ignore `platform` unless you pass it explicitly.
+- `search.extensions` — empty scans every text file; a list like `[".cs",".ts"]` narrows it.
 
 Changes take effect on the next tool call; no restart needed.
+
+The shipped `scripts/config.json` is replaced when the plugin updates. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); the files are deep-merged and user values win.
 
 ## Honest limits
 
 - Savings are real only on large files, repo-wide searches and builds. A short chat session saves nothing.
 - Tool schemas and the skill description cost roughly 600 tokens per session — the plugin pays for itself only if it prevents one medium-sized dump.
-- Build compaction depends on the log. A real 59-project .NET Framework solution through MSBuild shrank 92.5% (27,258 → 2,048 tokens). A small failing build already run with `-v:q` shrank only 8%.
+- Build compaction depends on the log. A real 59-project .NET Framework solution through MSBuild shrank 92.3% (27,258 → 2,104 tokens). A small failing build already run with `-v:q` shrank only 8%.
 - The plugin cannot reduce the baseline cost of your other skills or MCP servers; use `/diet` and disable what you do not use.

@@ -1,20 +1,21 @@
 # Token-diet benchmark
 
-Generated 2026-10-29T03:31:25.859Z | fixtures are synthetic, sized like real-world enterprise files.
+Generated 2026-10-29T03:43:34.371Z | fixtures are synthetic, sized like real-world enterprise files.
 Token estimate: 3.6 chars/token for code, 4 for logs/prose.
 
 | Scenario | Before (tokens) | After (tokens) | Saved |
 |---|---:|---:|---:|
-| Read one large C# file (whole file) | 38,749 | 1,474 | 96.2% |
+| Read one large C# file (whole file) | 38,749 | 1,761 | 95.5% |
 | Find one symbol across the repo (grep -rn) | 9,218 | 1,698 | 81.6% |
 | Read a build log (dotnet build) | 55,783 | 461 | 99.2% |
+| Legacy build ERP.sln (msbuild, exit 1, log 106 KB) | 27,258 | 2,104 | 92.3% |
 
 ## Guard behaviour
 
-- Read 136 KB with no limit -> BLOCKED (116-token reason)
+- Read 136 KB with no limit -> BLOCKED (104-token reason)
 - `grep -rn` unbounded -> BLOCKED
 - `grep -rn -m 5` (bounded) -> allowed
-- Read a small 6 KB file -> allowed
+- Read a small 8 KB file -> allowed
 - Same command repeated 3 times -> warning emitted
 
 

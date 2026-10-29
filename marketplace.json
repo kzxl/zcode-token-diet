@@ -1,20 +1,32 @@
 {
   "name": "zcode-token-diet",
-  "owner": { "name": "kzxl", "url": "https://github.com/kzxl" },
+  "owner": {
+    "name": "kzxl",
+    "url": "https://github.com/kzxl"
+  },
   "plugins": [
     {
       "name": "token-diet",
       "source": "./plugins/token-diet",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
       "displayName": "Token Diet",
-      "displayName_i18n": { "zh-CN": "上下文节食" },
+      "displayName_i18n": {
+        "zh-CN": "上下文节食"
+      },
       "description_i18n": {
         "en": "Cuts the tokens a coding session spends on file dumps, unbounded greps and raw build logs.",
         "zh-CN": "减少编码会话在整文件读取、无界搜索和原始构建日志上消耗的 token。"
       },
       "category": "developer-tools",
-      "keywords": ["tokens", "context", "hooks", "mcp", "build", "performance"]
+      "keywords": [
+        "tokens",
+        "context",
+        "hooks",
+        "mcp",
+        "build",
+        "performance"
+      ]
     }
   ]
 }

@@ -7,16 +7,9 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { loadConfig } from "./lib/config.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-
-function loadConfig(p) {
-  try {
-    return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch {
-    return { loopBreaker: { enabled: false } };
-  }
-}
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -29,7 +22,7 @@ function readStdin() {
 }
 
 async function main() {
-  const cfg = loadConfig(path.join(here, "config.json"));
+  const cfg = loadConfig(here);
   const lb = cfg.loopBreaker || {};
   if (lb.enabled === false) return;
 

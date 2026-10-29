@@ -146,28 +146,45 @@ export function resolveBuildPlan(project, opts = {}, cfg = {}) {
   return { style, toolchain, exe: "dotnet", args, configuration, platform };
 }
 
-function codeOf(line) {
-  const m = line.match(/\b(?:error|warning)\s+([A-Z]{1,4}\d{3,5})\b/);
-  return m ? m[1] : "OTHER";
+function diagnosticCode(line) {
+  const coded = line.match(/\b(?:error|warning)\s+([A-Z]{1,4}\d{3,5})\b/);
+  if (coded) return coded[1];
+  const prefixed = line.match(/\b(MSB|NU|NETSDK|CS|CA|IDE)\d{3,5}\b/);
+  return prefixed ? prefixed[0] : "OTHER";
+}
+
+// MSBuild emits both "path(1,2): error CS1234: ..." and "error : ..." with no
+// code. The second form used to be dropped, which made a failed build report
+// zero errors.
+function isErrorLine(line) {
+  if (/Error\(s\)/.test(line)) return false;
+  return /(:\s*error\b)|(^error\b)/i.test(line);
+}
+
+function isWarningLine(line) {
+  if (/Warning\(s\)/.test(line)) return false;
+  return /(:\s*warning\b)|(^warning\b)/i.test(line);
 }
 
 export function compactBuildLog(text, opts = {}) {
   const maxErrors = opts.maxErrors ?? 40;
   const maxGroups = opts.maxGroups ?? 15;
   const tail = opts.tail ?? 5;
+  const failed = opts.failed === true;
 
   const rows = text.split(/\r?\n/);
-  const errors = [];
+  const errorCounts = new Map();
   const warnGroups = new Map();
   const summary = [];
 
   for (const line of rows) {
-    if (/: error [A-Z]{1,4}\d{3,5}:/.test(line)) {
-      if (errors.length < maxErrors) errors.push(line.trim());
+    if (isErrorLine(line)) {
+      const key = line.trim();
+      errorCounts.set(key, (errorCounts.get(key) || 0) + 1);
       continue;
     }
-    if (/: warning [A-Z]{1,4}\d{3,5}:/.test(line)) {
-      const code = codeOf(line);
+    if (isWarningLine(line)) {
+      const code = diagnosticCode(line);
       let g = warnGroups.get(code);
       if (!g) {
         g = { count: 0, sample: line.trim() };
@@ -181,16 +198,21 @@ export function compactBuildLog(text, opts = {}) {
     }
   }
 
+  const errorEntries = [...errorCounts.entries()];
+  const errorTotal = errorEntries.reduce((n, [, count]) => n + count, 0);
   const sortedGroups = [...warnGroups.entries()].sort((a, b) => b[1].count - a[1].count);
   const warningTotal = sortedGroups.reduce((n, [, g]) => n + g.count, 0);
 
   const out = [];
   out.push(
-    `errors: ${errors.length}${errors.length >= maxErrors ? "+" : ""} | warnings: ${warningTotal} (${sortedGroups.length} distinct codes)`
+    `errors: ${errorTotal}${errorEntries.length > maxErrors ? "+" : ""} | warnings: ${warningTotal} (${sortedGroups.length} distinct codes)`
   );
-  if (errors.length) {
+  if (errorEntries.length) {
     out.push("", "ERRORS");
-    out.push(...errors.map((e) => "  " + e.slice(0, 220)));
+    for (const [line, count] of errorEntries.slice(0, maxErrors)) {
+      out.push(`  ${count > 1 ? `x${count} ` : ""}${line.slice(0, 220)}`);
+    }
+    if (errorEntries.length > maxErrors) out.push(`  ... ${errorEntries.length - maxErrors} more distinct errors omitted`);
   }
   if (sortedGroups.length) {
     out.push("", "WARNINGS (grouped by code)");
@@ -203,7 +225,9 @@ export function compactBuildLog(text, opts = {}) {
     out.push("", "SUMMARY");
     out.push(...summary.slice(-6).map((s) => "  " + s));
   }
-  if (errors.length === 0 && warningTotal === 0) {
+  // A failed build with no recognizable error line (localized output, a task
+  // that prints only a message) still has to show something actionable.
+  if (errorTotal === 0 && (failed || warningTotal === 0)) {
     out.push("", "TAIL");
     out.push(...rows.slice(-tail).filter(Boolean).map((s) => "  " + s.trim().slice(0, 160)));
   }
@@ -234,7 +258,7 @@ export function runBuild(opts = {}, cfg = {}) {
     shell: false,
   });
 
-  const text = `${res.stdout || ""}\n${res.stderr || ""}`;
+  const text = `${res.stdout || ""}\n${res.stderr || ""}${res.error ? `\n${res.error.message}` : ""}`;
   const logDir = path.join(process.cwd(), ".token-diet");
   const logFile = path.join(logDir, "build.log");
   try {
@@ -242,9 +266,9 @@ export function runBuild(opts = {}, cfg = {}) {
     fs.writeFileSync(logFile, text);
   } catch {}
 
-  const compact = compactBuildLog(text, opts);
+  const compact = compactBuildLog(text, { ...opts, failed: res.status !== 0 });
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
-  const status = res.status === 0 ? "ok" : `FAILED (exit ${res.status ?? "?"})`;
+  const status = res.error ? `FAILED (${res.error.code || res.error.message})` : res.status === 0 ? "ok" : `FAILED (exit ${res.status ?? "?"})`;
   const kb = (Buffer.byteLength(text) / 1024).toFixed(0);
   const timing = res.error?.code === "ETIMEDOUT" ? ` | timed out after ${Math.round(timeout / 1000)}s` : "";
   return {

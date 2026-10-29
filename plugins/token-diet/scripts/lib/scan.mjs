@@ -1,4 +1,14 @@
 // Shared scanning helpers for the outline and search tools.
+//
+// Design notes:
+// - search() is language-agnostic: it walks any text file under the target and
+//   only skips known-binary extensions, NUL bytes, and oversized files.
+// - outline() is heuristic, not a parser. It recognises declaration shapes for
+//   C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart,
+//   shell, Lua, Perl and SQL. False negatives are expected for exotic syntax;
+//   the caller can always fall back to Read with offset/limit.
+// - Files are decoded from UTF-8 or UTF-16 (BOM), because legacy repositories
+//   on Windows often store source as UTF-16.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -8,23 +18,54 @@ export const SKIP_DIRS = new Set([
   "build", ".next", ".angular", "TestResults", "artifacts", ".idea",
 ]);
 
+const BINARY_EXT = new Set([
+  ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".tif", ".tiff",
+  ".pdf", ".zip", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar",
+  ".exe", ".dll", ".pdb", ".so", ".dylib", ".class", ".jar", ".war", ".ear",
+  ".woff", ".woff2", ".ttf", ".otf", ".eot",
+  ".mp3", ".mp4", ".avi", ".mov", ".mkv", ".wav", ".flac", ".ogg",
+  ".sqlite", ".sqlite3", ".db", ".bin", ".dat", ".cache", ".nupkg", ".snupkg",
+  ".vsix", ".obj", ".o", ".a", ".lib", ".pyc", ".pyo", ".wasm", ".pfx", ".snk",
+]);
+
 const CODE_EXT = new Set([
-  ".cs", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".java", ".kt", ".py",
-  ".go", ".rb", ".php", ".cpp", ".h", ".hpp", ".c", ".xaml",
+  ".cs", ".fs", ".vb", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+  ".java", ".kt", ".kts", ".scala", ".groovy", ".py", ".rb", ".php",
+  ".go", ".rs", ".swift", ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp", ".hh",
+  ".m", ".mm", ".lua", ".pl", ".pm", ".r", ".jl", ".dart", ".ex", ".exs",
+  ".erl", ".hrl", ".hs", ".clj", ".cljs", ".sh", ".bash", ".zsh", ".ps1", ".psm1",
+  ".sql", ".vue", ".svelte", ".astro", ".zig", ".nim", ".sol",
+  ".tf", ".hcl", ".proto", ".graphql", ".gql", ".xaml",
 ]);
 
-const TEXT_EXT = new Set([
-  ...CODE_EXT, ".csproj", ".sln", ".json", ".md", ".config", ".sql",
-  ".ps1", ".sh", ".yml", ".yaml", ".xml", ".props", ".targets", ".txt",
-]);
+// ---------------------------------------------------------------- decoding
 
-const TYPE_RE = /^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|async|virtual|override|new|extern|unsafe|const|event|required|file|scoped|ref)\s+)*(?:class|interface|struct|enum|record|delegate)\s+[A-Za-z_]/;
-const METHOD_RE = /^\s*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|async|virtual|override|extern|unsafe|new)\s+)+[\w<>[\],.?]+\s+[A-Za-z_]\w*\s*[<(]/;
-const PROP_RE = /^\s*(?:(?:public|private|protected|internal|static|readonly|virtual|override|required)\s+)+[\w<>[\],.?]+\s+[A-Za-z_]\w*\s*\{\s*(?:get|set|init)/;
-const NAMESPACE_RE = /^\s*namespace\s+[A-Za-z_]/;
-const GENERIC_DEF_RE = /^\s*(?:export\s+)?(?:async\s+)?(?:function|def|class|interface|struct|enum|record|type|const|let|var)\s+[A-Za-z_$]/;
+export function decodeBuffer(buf) {
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.subarray(2).toString("utf16le");
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    const copy = Buffer.from(buf.subarray(2));
+    copy.swap16();
+    return copy.toString("utf16le");
+  }
+  let text = buf.toString("utf8");
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  return text;
+}
 
-function walk(dir, out, limit = 4000) {
+export function readText(file) {
+  return decodeBuffer(fs.readFileSync(file));
+}
+
+function hasBom(buf) {
+  if (buf.length < 2) return false;
+  return (buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff);
+}
+
+// ---------------------------------------------------------------- walking
+
+function walk(dir, out, limit = 20000) {
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -33,9 +74,6 @@ function walk(dir, out, limit = 4000) {
   }
   for (const e of entries) {
     if (out.length >= limit) return out;
-    if (e.name.startsWith(".") && e.name !== ".") {
-      if (SKIP_DIRS.has(e.name)) continue;
-    }
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
@@ -55,17 +93,57 @@ export function collectFiles(target, exts) {
   } catch {
     return { files: [], error: `Path not found: ${target}` };
   }
-  if (st.isFile()) return { files: [p] };
-  const all = walk(p, []);
-  return { files: all.filter((f) => exts.has(path.extname(f).toLowerCase())) };
+  const allow = exts ? new Set([...exts].map((x) => x.toLowerCase())) : null;
+  const ok = (f) => {
+    const ext = path.extname(f).toLowerCase();
+    if (BINARY_EXT.has(ext)) return false;
+    return allow ? allow.has(ext) : true;
+  };
+  if (st.isFile()) return { files: ok(p) ? [p] : [] };
+  return { files: walk(p, []).filter(ok) };
 }
 
+// ---------------------------------------------------------------- outline
+
+const COMMENT_RE = /^\s*(?:\/\/|#(?!\[)|--|\*|\/\*|<!--)/;
+const CONTROL_RE = /^\s*(?:if|for|while|switch|catch|return|new|using|lock|foreach|do|else|try|throw|await|yield|case|default|break|continue|goto|sizeof|typeof|nameof|assert|raise|pass|del|import|from|require|include|echo|print|puts)\b/;
+
+const PATTERNS = [
+  { kind: "ns", re: /^\s*(?:namespace|package|module|defmodule)\s+[A-Za-z_$@]/ },
+  {
+    kind: "type",
+    re: /^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|async|virtual|override|new|extern|unsafe|const|event|required|file|scoped|ref|pub|export|default|declare|inline|final|open|data|value|case|actor)\s+)*(?:class|interface|struct|enum|record|delegate|trait|impl|object|protocol|contract|extension|union|type)\b/,
+  },
+  {
+    kind: "func",
+    re: /^\s*(?:(?:export|default|pub(?:\([^)]*\))?|async|static|inline|unsafe|extern|public|private|protected|internal|local|constexpr|virtual|override)\s+)*(?:function|def|defp|defn|func|fun|fn|sub|proc|method|constructor|task)\b/,
+  },
+  { kind: "sql", re: /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?(?:TABLE|PROCEDURE|PROC|FUNCTION|VIEW|INDEX|TRIGGER|TYPE|SCHEMA|DATABASE)\b/i },
+  {
+    kind: "func",
+    re: /^\s*(?:export\s+)?(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>|class\b)/,
+  },
+  { kind: "func", re: /^\s*(?:function\s+[A-Za-z_][\w-]*|[A-Za-z_][\w-]*\s*\(\)\s*\{)/ },
+  {
+    kind: "method",
+    re: /^\s*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|async|virtual|override|extern|unsafe|new|synchronized|final|native|default)\s+)+[\w<>[\],.?*&:~]+\s+[A-Za-z_]\w*\s*(?:<[^>]*>)?\s*\(/,
+  },
+  {
+    kind: "prop",
+    re: /^\s*(?:(?:public|private|protected|internal|static|readonly|virtual|override|required|lateinit|const)\s+)+[\w<>[\],.?]+\s+[A-Za-z_]\w*\s*(?::\s*[\w<>[\],.?]+)?\s*(?:=|\{\s*(?:get|set|init))/,
+  },
+  // Return-type declarations with no modifiers: C, Go, Dart, old-style Java.
+  {
+    kind: "func",
+    re: /^\s*(?:[\w:*&<>,[\].]+\s+)+[*&]?\s*[A-Za-z_]\w*\s*\([^;{}]*\)\s*(?:const)?\s*\{?\s*$/,
+  },
+];
+
 function symbolKind(line) {
-  if (NAMESPACE_RE.test(line)) return "ns";
-  if (TYPE_RE.test(line)) return "type";
-  if (PROP_RE.test(line)) return "prop";
-  if (METHOD_RE.test(line)) return "method";
-  if (GENERIC_DEF_RE.test(line)) return "def";
+  if (!line.trim()) return null;
+  if (COMMENT_RE.test(line)) return null;
+  if (CONTROL_RE.test(line)) return null;
+  for (const p of PATTERNS) if (p.re.test(line)) return p.kind;
   return null;
 }
 
@@ -75,7 +153,7 @@ export function outline(target, opts = {}) {
   const { files, error } = collectFiles(target, CODE_EXT);
   if (error) return { text: error, stats: { files: 0, symbols: 0 } };
   if (files.length === 0) {
-    return { text: `No source files (.cs/.ts/.js/...) under ${target}`, stats: { files: 0, symbols: 0 } };
+    return { text: `No source files under ${target}`, stats: { files: 0, symbols: 0 } };
   }
 
   const sized = files
@@ -95,7 +173,7 @@ export function outline(target, opts = {}) {
   for (const { f } of selected) {
     let text;
     try {
-      text = fs.readFileSync(f, "utf8");
+      text = readText(f);
     } catch {
       continue;
     }
@@ -122,6 +200,8 @@ export function outline(target, opts = {}) {
   return { text: `${header}\n\n${body}`, stats: { files: selected.length, symbols } };
 }
 
+// ---------------------------------------------------------------- search
+
 export function search(opts) {
   const pattern = String(opts.pattern ?? "");
   if (!pattern) return { text: "search: pattern is required", stats: { matches: 0 } };
@@ -130,22 +210,16 @@ export function search(opts) {
   const maxBytes = opts.maxBytes ?? 8192;
 
   let re;
-  let literal = pattern;
   const m = pattern.match(/^\/(.*)\/([gimsuy]*)$/);
   try {
-    if (m) {
-      re = new RegExp(m[1], m[2].replace("g", ""));
-      literal = "";
-    } else {
-      re = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      literal = pattern.toLowerCase();
-    }
+    re = m ? new RegExp(m[1], m[2].replace("g", "")) : new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
   } catch (e) {
     return { text: `search: invalid pattern (${e.message})`, stats: { matches: 0 } };
   }
 
   const target = opts.path || ".";
-  const { files, error } = collectFiles(target, TEXT_EXT);
+  const allow = Array.isArray(opts.extensions) && opts.extensions.length > 0 ? opts.extensions : null;
+  const { files, error } = collectFiles(target, allow);
   if (error) return { text: error, stats: { matches: 0 } };
 
   const out = [];
@@ -157,15 +231,17 @@ export function search(opts) {
 
   for (const f of files) {
     if (capped) break;
-    let text;
+    let buf;
     try {
       const size = fs.statSync(f).size;
       if (size > 2_000_000) continue;
-      text = fs.readFileSync(f, "utf8");
-      if (text.includes("\u0000")) continue;
+      buf = fs.readFileSync(f);
+      // UTF-16 source has NUL bytes but is text; only skip BOM-less binaries.
+      if (!hasBom(buf) && buf.includes(0)) continue;
     } catch {
       continue;
     }
+    const text = decodeBuffer(buf);
     const rows = text.split(/\r?\n/);
     const rel = path.relative(process.cwd(), f) || f;
     for (let i = 0; i < rows.length; i++) {

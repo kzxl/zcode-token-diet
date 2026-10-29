@@ -16,10 +16,10 @@ Mỗi ký tự tool trả về đều tốn token, và còn tốn lại ở các
 
 | Kịch bản | Trước | Sau | Giảm |
 |---|---:|---:|---:|
-| Đọc 1 file C# lớn | 38.749 | 1.474 | 96,2% |
+| Đọc 1 file C# lớn | 38.749 | 1.761 | 95,5% |
 | Tìm 1 symbol khắp repo | 9.218 | 1.698 | 81,6% |
 | Log build nhiều warning | 55.783 | 461 | 99,2% |
-| *thật* solution .NET Framework 59 project qua MSBuild | 27.258 | 2.048 | 92,5% |
+| *thật* solution .NET Framework 59 project qua MSBuild | 27.258 | 2.104 | 92,3% |
 | *thật* solution SDK-style qua `dotnet build` | 1.624 | 1.493 | 8,1% |
 
 Dòng cuối là giới hạn thật: khi build đã chạy `-v:q` và fail sớm thì gần như không còn gì để nén. Plugin có lãi ở file lớn, tìm kiếm toàn repo và build nhiều warning.
@@ -37,6 +37,16 @@ Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode
 
 Để áp dụng cả khi không chọn skill, chép [`AGENTS.md.sample`](plugins/token-diet/AGENTS.md.sample) vào `~/.zcode/AGENTS.md`. Tốn thêm khoảng 260 token/session.
 
+## Hỗ trợ ngôn ngữ
+
+| Lớp | Phạm vi |
+|---|---|
+| Guard | Mọi ngôn ngữ. Nó xét kích thước file và câu lệnh shell, không phân tích cú pháp. |
+| `search` | Mọi file text. Bỏ qua file nhị phân/NUL, giải mã được UTF-16LE/BE. Có thể giới hạn bằng `search.extensions`. |
+| `outline` | Nhận diện khai báo theo heuristic cho C/C++/C#/Java/Kotlin, JS/TS, Python, Ruby, PHP, Go, Rust, Swift, Scala, Dart, shell, Lua, Perl và SQL. Là regex, không phải parser. |
+| `build` | Chỉ .NET (MSBuild hoặc `dotnet`). Hệ sinh thái khác dùng lệnh build riêng; tool báo rõ thay vì đoán. |
+| Skill, agent, `AGENTS.md` mẫu | Không phụ thuộc ngôn ngữ. |
+
 ## Thành phần
 
 | Thành phần | Chức năng |
@@ -52,7 +62,9 @@ Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode
 
 ## Cấu hình
 
-Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc định 128 KB), `guard.bash.denyRecursiveGrep`, `loopBreaker.threshold` (3), `build.toolchain` (`auto`/`msbuild`/`dotnet`), `build.msbuildPath`, `build.platform`. Có hiệu lực từ lần gọi tool tiếp theo.
+Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc định 128 KB), `guard.read.maxLimitLines` (400 — `limit` lớn hơn trên file lớn bị coi là đọc cả file), `guard.bash.denyRecursiveGrep`, `loopBreaker.threshold` (3), `build.toolchain` (`auto`/`msbuild`/`dotnet`), `build.msbuildPath`, `build.platform`, `search.extensions` (rỗng = mọi file text). Có hiệu lực từ lần gọi tool tiếp theo.
+
+Đặt riêng trong `~/.zcode/token-diet.config.json` (hoặc đường dẫn ở `TOKEN_DIET_CONFIG`) để không mất khi update plugin; hai file được merge, giá trị của bạn thắng.
 
 ## Giới hạn
 
@@ -64,6 +76,7 @@ Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc đ�
 ## Benchmark
 
 ```sh
+npm test                          # guard, config override, outline đa ngôn ngữ
 node bench/mcp-smoke.mjs
 node bench/measure.mjs
 TOKEN_DIET_ERP_SLN=/path/to/Legacy.sln node bench/measure.mjs
