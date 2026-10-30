@@ -1,6 +1,6 @@
 {
   "name": "zero-token",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "Universal coding agent plugin (Antigravity, ZCode, Claude Code) that keeps sessions from flooding their context with whole-file reads, unbounded greps and raw build logs.",

@@ -2,7 +2,7 @@
   "name": "zero-token",
   "displayName": "Zero Token",
   "description": "Compact-context tools and guards: code outline, capped search, compact .NET builds, oversized-read blocking, and token budgeting.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "author": "kzxl",
   "suggestedPrompts": [
     "/zero-token on",

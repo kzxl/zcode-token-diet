@@ -1,6 +1,6 @@
 {
   "name": "zero-token",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
   "author": {
     "name": "kzxl"

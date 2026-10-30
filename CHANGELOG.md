@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+
+- Rebrand: Renamed project from `token-diet` to `zero-token`.
+- Universal Dual-Platform Support: Full native integration with **Google Antigravity 2.0** alongside **ZCode**.
+- Universal Guard Adapter: `guard.mjs` normalizes and intercepts both ZCode (`Read`, `Bash`) and Antigravity 2.0 (`read_file`, `run_command`).
+- Antigravity 2.0 Hook & Plugin Manifest: Shipped `plugins/zero-token/plugin.json`, `hooks/hooks.json` matcher for `read_file|run_command`, and always-on rules `rules/AGENTS.md`.
+- Universal PowerShell Installer: `install.ps1` sets up NTFS Junctions for both `~/.gemini/config/plugins/zero-token` and `~/.zcode/plugins/zero-token` automatically.
+- Unified Configuration & Ledger Storage: Default shared directory `~/.zero-token/`, environment variable `ZERO_TOKEN_*` with backwards compatibility fallback to `TOKEN_DIET_*`.
+
 ## 0.6.0
 
 - Panel: Reload button and auto-refresh interval (off / 3s / 5s / 10s / 30s,
