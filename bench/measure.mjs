@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Benchmark: naive context usage vs the token-diet path.
+// Benchmark: naive context usage vs the zero-token path.
 // Fixtures are synthetic so the numbers are reproducible; real files are also
 // probed to show the guard stays out of the way below the threshold.
 
@@ -8,9 +8,9 @@ import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { outline, search } from "../plugins/token-diet/scripts/lib/scan.mjs";
-import { compactBuildLog, runBuild } from "../plugins/token-diet/scripts/lib/build.mjs";
-import { dietReport } from "../plugins/token-diet/scripts/lib/diet.mjs";
+import { outline, search } from "../plugins/zero-token/scripts/lib/scan.mjs";
+import { compactBuildLog, runBuild } from "../plugins/zero-token/scripts/lib/build.mjs";
+import { dietReport } from "../plugins/zero-token/scripts/lib/diet.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
@@ -168,7 +168,7 @@ function writeFixtures() {
 function runGuard(payload) {
   const res = spawnSync(
     process.execPath,
-    [path.join(root, "plugins", "token-diet", "scripts", "guard.mjs")],
+    [path.join(root, "plugins", "zero-token", "scripts", "guard.mjs")],
     { input: JSON.stringify(payload), encoding: "utf8", timeout: 10000 }
   );
   return { out: (res.stdout || "").trim(), err: (res.stderr || "").trim(), status: res.status };
@@ -179,7 +179,7 @@ function runLoopBreaker(payload, times) {
   for (let i = 0; i < times; i++) {
     const res = spawnSync(
       process.execPath,
-      [path.join(root, "plugins", "token-diet", "scripts", "loop-breaker.mjs")],
+      [path.join(root, "plugins", "zero-token", "scripts", "loop-breaker.mjs")],
       { input: JSON.stringify(payload), encoding: "utf8", timeout: 10000 }
     );
     last = { out: (res.stdout || "").trim() };
@@ -249,7 +249,7 @@ function main() {
   const realSln = process.env.TOKEN_DIET_REAL_SLN || "";
   if (realSln && fs.existsSync(realSln)) {
     const rb = runBuild({ project: realSln });
-    const logPath = path.join(root, ".token-diet", "build.log");
+    const logPath = path.join(root, ".zero-token", "build.log");
     const full = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
     realBuild = { before: tok(full, TEXT_CPT), after: tok(rb.text, TEXT_CPT), status: rb.status, logKB: (Buffer.byteLength(full) / 1024).toFixed(0) };
     rows.push({ scenario: `Real build ${path.basename(realSln)} (${rb.toolchain}, exit ${rb.status}, log ${realBuild.logKB} KB)`, before: realBuild.before, after: realBuild.after });
@@ -260,7 +260,7 @@ function main() {
   const erpSln = process.env.TOKEN_DIET_ERP_SLN || "";
   if (erpSln && fs.existsSync(erpSln)) {
     const rb = runBuild({ project: erpSln, timeoutMs: 240000 }, { build: { configuration: "Debug", platform: "Any CPU" } });
-    const logPath = path.join(root, ".token-diet", "build.log");
+    const logPath = path.join(root, ".zero-token", "build.log");
     const full = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
     erpBuild = {
       before: tok(full, TEXT_CPT),
@@ -281,7 +281,7 @@ function main() {
   const guardBig = runGuard({ hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path: bigFile }, cwd: root, session_id: "bench" });
   const guardGrep = runGuard({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "grep -rn OrderStatus ." }, cwd: root, session_id: "bench" });
   const guardSafeGrep = runGuard({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "grep -rn -m 5 OrderStatus ." }, cwd: root, session_id: "bench" });
-  const realSmall = path.join(root, "plugins", "token-diet", "scripts", "guard.mjs");
+  const realSmall = path.join(root, "plugins", "zero-token", "scripts", "guard.mjs");
   const guardSmall = runGuard({ hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path: realSmall }, cwd: root, session_id: "bench" });
   const loop = runLoopBreaker(
     { hook_event_name: "PostToolUse", tool_name: "Bash", tool_input: { command: "grep -rn x ." }, session_id: `bench-loop-${Date.now()}` },
@@ -313,10 +313,10 @@ function main() {
   const diet = dietReport(root);
 
   // 6. Plugin permanent cost
-  const skillDesc = fs.readFileSync(path.join(root, "plugins", "token-diet", "skills", "token-diet", "SKILL.md"), "utf8");
+  const skillDesc = fs.readFileSync(path.join(root, "plugins", "zero-token", "skills", "zero-token", "SKILL.md"), "utf8");
   const descLine = (skillDesc.match(/description:\s*([\s\S]*?)\n---/) || [, ""])[1];
-  const agentDesc = (fs.readFileSync(path.join(root, "plugins", "token-diet", "agents", "scout.md"), "utf8").match(/description:\s*([\s\S]*?)\ncolor:/) || [, ""])[1];
-  const toolSchemas = fs.readFileSync(path.join(root, "plugins", "token-diet", "scripts", "mcp-server.mjs"), "utf8");
+  const agentDesc = (fs.readFileSync(path.join(root, "plugins", "zero-token", "agents", "scout.md"), "utf8").match(/description:\s*([\s\S]*?)\ncolor:/) || [, ""])[1];
+  const toolSchemas = fs.readFileSync(path.join(root, "plugins", "zero-token", "scripts", "mcp-server.mjs"), "utf8");
   const toolDescChars = (toolSchemas.match(/description:\s*\n?\s*"[^"]+"/g) || []).join("").length;
   const permanent = tok(descLine + agentDesc) + Math.round(toolDescChars / 4) + 200;
 

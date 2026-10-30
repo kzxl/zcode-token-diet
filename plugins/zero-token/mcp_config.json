@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "token-diet": {
+    "zero-token": {
       "command": "node",
       "args": [
         "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.mjs"
       ],
       "env": {
-        "TOKEN_DIET_WORKSPACE": "."
+        "ZERO_TOKEN_WORKSPACE": "."
       }
     }
   }

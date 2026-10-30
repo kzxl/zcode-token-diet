@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const server = path.join(root, "plugins", "token-diet", "scripts", "mcp-server.mjs");
+const server = path.join(root, "plugins", "zero-token", "scripts", "mcp-server.mjs");
 
 // Self-contained fixture so the smoke test runs on a fresh clone and in CI.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-smoke-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zero-token-smoke-"));
 const sampleDir = path.join(tmp, "src");
 fs.mkdirSync(sampleDir);
 fs.writeFileSync(
@@ -49,7 +49,7 @@ fs.writeFileSync(
 const child = spawn(process.execPath, [server], {
   cwd: root,
   stdio: ["pipe", "pipe", "pipe"],
-  env: { ...process.env, TOKEN_DIET_DATA: path.join(os.tmpdir(), "token-diet-smoke-ledger") },
+  env: { ...process.env, TOKEN_DIET_DATA: path.join(os.tmpdir(), "zero-token-smoke-ledger") },
 });
 let buf = "";
 const pending = new Map();
@@ -125,10 +125,10 @@ try {
   const resList = await rpc("resources/list", {});
   const resources = resList.result?.resources || [];
   out.push(`resources/list -> ${resources.map((r) => r.uri).join(", ") || "(none)"}`);
-  const panel = await rpc("resources/read", { uri: "ui://token-diet/panel.html" });
+  const panel = await rpc("resources/read", { uri: "ui://zero-token/panel.html" });
   const content = panel.result?.contents?.[0] || {};
   out.push(`resources/read -> ${content.mimeType || "(no mime)"}, ${(content.text || "").length} chars`);
-  out.push(`panel contains title -> ${/<h1>Token Diet<\/h1>/.test(content.text || "")}`);
+  out.push(`panel contains title -> ${/<h1>Zero Token<\/h1>/.test(content.text || "")}`);
   out.push(`panel handshake -> ${/ui\/initialize/.test(content.text || "") && /ui\/notifications\/initialized/.test(content.text || "")}`);
   out.push(`panel controls -> reload=${/>Reload</.test(content.text || "")} interval=${/Auto: 5s/.test(content.text || "")} bridge=${/tools\/call/.test(content.text || "")}`);
 

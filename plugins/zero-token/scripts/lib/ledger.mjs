@@ -1,7 +1,7 @@
 // Local savings ledger.
 //
 // Records what the guard blocked and what the MCP tools returned. It is a local
-// JSONL file under ~/.zcode/token-diet/ (override with $TOKEN_DIET_DATA); it
+// JSONL file under ~/.zcode/zero-token/ (override with $ZERO_TOKEN_DATA); it
 // never leaves the machine and never throws into a hook or a tool call.
 
 import fs from "node:fs";
@@ -12,9 +12,10 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const CHARS_PER_TOKEN = 3.6;
 
 export function dataDir() {
+  if (process.env.ZERO_TOKEN_DATA) return process.env.ZERO_TOKEN_DATA;
   if (process.env.TOKEN_DIET_DATA) return process.env.TOKEN_DIET_DATA;
-  const shared = path.join(os.homedir(), ".token-diet");
-  const zcode = path.join(os.homedir(), ".zcode", "token-diet");
+  const shared = path.join(os.homedir(), ".zero-token");
+  const zcode = path.join(os.homedir(), ".zcode", "zero-token");
   if (fs.existsSync(zcode) && !fs.existsSync(shared)) return zcode;
   return shared;
 }
@@ -82,7 +83,7 @@ export function savingsReport(days = 1) {
   }
 
   const lines = [];
-  lines.push(`token-diet ledger — last ${days} day(s)`);
+  lines.push(`zero-token ledger — last ${days} day(s)`);
   lines.push(`file: ${ledgerPath()}`);
   lines.push("");
   lines.push(`Blocked calls: ${denies.length}`);
@@ -98,7 +99,7 @@ export function savingsReport(days = 1) {
     }
   }
   lines.push("");
-  lines.push("Tool calls through token-diet:");
+  lines.push("Tool calls through zero-token:");
   if (byTool.size === 0) {
     lines.push("  (none)");
   } else {

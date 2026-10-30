@@ -138,7 +138,7 @@ export function dietReport(cwd = process.cwd()) {
   const schemaChars = schemaRows.reduce((n, r) => n + r.chars, 0);
 
   const lines = [];
-  lines.push("token-diet report — estimated permanent context cost per session");
+  lines.push("zero-token report — estimated permanent context cost per session");
   lines.push(`formula: ${CHARS_PER_TOKEN} chars/token, +${PATH_OVERHEAD_CHARS} chars per skill line`);
   lines.push("");
   lines.push("GROUP                 ITEMS   EST. TOKENS");

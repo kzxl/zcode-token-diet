@@ -1,4 +1,4 @@
-# ZCode Token Diet
+# ZCode Zero Token
 
 Plugin ZCode giúp phiên làm việc không tự làm ngập context bằng cách đọc cả file, `grep -r` không giới hạn và log build thô — mà không nén lịch sử và không viết lại output của tool.
 
@@ -29,13 +29,13 @@ Chi phí thường trực của chính plugin khoảng **780 token mỗi session
 ## Cài đặt
 
 ```text
-/plugin marketplace add kzxl/zcode-token-diet
-/plugin install token-diet@zcode-token-diet
+/plugin marketplace add kzxl/zcode-zero-token
+/plugin install zero-token@zcode-zero-token
 ```
 
-Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode-token-diet`, rồi cài **Token Diet**. Mở task mới sau khi cài: ZCode nạp skill, MCP tool, agent và hook ở đầu session.
+Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode-zero-token`, rồi cài **Zero Token**. Mở task mới sau khi cài: ZCode nạp skill, MCP tool, agent và hook ở đầu session.
 
-Để áp dụng cả khi không chọn skill, chép [`AGENTS.md.sample`](plugins/token-diet/AGENTS.md.sample) vào `~/.zcode/AGENTS.md`. Tốn thêm khoảng 260 token/session.
+Để áp dụng cả khi không chọn skill, chép [`AGENTS.md.sample`](plugins/zero-token/AGENTS.md.sample) vào `~/.zcode/AGENTS.md`. Tốn thêm khoảng 260 token/session.
 
 ## Hỗ trợ ngôn ngữ
 
@@ -53,33 +53,33 @@ Hoặc **Plugin Marketplace → + → Add Plugin Marketplace**, dán `kzxl/zcode
 |---|---|
 | `outline` | Liệt kê class/method kèm số dòng, thay cho đọc cả file |
 | `search` | Tìm text hoặc `/regex/`, trả `file:line` + 2 dòng context, cap 30 match / 8 KB |
-| `build` | Tự chọn MSBuild (legacy .NET Framework) hoặc `dotnet build` (SDK), giữ full log ở `.token-diet/build.log`, chỉ trả lỗi + warning gộp theo mã |
+| `build` | Tự chọn MSBuild (legacy .NET Framework) hoặc `dotnet build` (SDK), giữ full log ở `.zero-token/build.log`, chỉ trả lỗi + warning gộp theo mã |
 | `run` | Build/test/lint cho npm/pnpm/yarn, cargo, go, maven, gradle, make, pytest; trích lỗi theo định dạng từng công cụ |
 | `diet` | Báo cáo skill/plugin nào đang tốn token mỗi session |
-| `token-diet:scout` | Subagent chỉ đọc, trả về `file:line`, không dán code |
+| `zero-token:scout` | Subagent chỉ đọc, trả về `file:line`, không dán code |
 | Hook `PreToolUse` | Chặn `Read` không `limit` trên file > 128 KB, `cat` file lớn, `grep -r` không giới hạn, `git log -p` không `-n` |
 | Hook `PostToolUse` | Cảnh báo một lần khi cùng một lệnh lặp 3 lần |
 | `/build`, `/diet` | Lệnh thủ công cho hai tool dùng nhiều nhất |
 
 ## Cấu hình
 
-Sửa `plugins/token-diet/scripts/config.json`: `guard.read.maxBytes` (mặc định 128 KB), `guard.read.maxLimitLines` (400 — `limit` lớn hơn trên file lớn bị coi là đọc cả file), `guard.bash.denyRecursiveGrep`, `loopBreaker.threshold` (3), `build.toolchain` (`auto`/`msbuild`/`dotnet`), `build.msbuildPath`, `build.platform`, `search.extensions` (rỗng = mọi file text). Có hiệu lực từ lần gọi tool tiếp theo.
+Sửa `plugins/zero-token/scripts/config.json`: `guard.read.maxBytes` (mặc định 128 KB), `guard.read.maxLimitLines` (400 — `limit` lớn hơn trên file lớn bị coi là đọc cả file), `guard.bash.denyRecursiveGrep`, `loopBreaker.threshold` (3), `build.toolchain` (`auto`/`msbuild`/`dotnet`), `build.msbuildPath`, `build.platform`, `search.extensions` (rỗng = mọi file text). Có hiệu lực từ lần gọi tool tiếp theo.
 
-Đặt riêng trong `~/.zcode/token-diet.config.json` (hoặc đường dẫn ở `TOKEN_DIET_CONFIG`) để không mất khi update plugin; hai file được merge, giá trị của bạn thắng.
+Đặt riêng trong `~/.zcode/zero-token.config.json` (hoặc đường dẫn ở `TOKEN_DIET_CONFIG`) để không mất khi update plugin; hai file được merge, giá trị của bạn thắng.
 
 Các khoá mới: `search.respectGitignore` (mặc định `true`), `search.cacheTtlMs` (30000), `search.cacheMaxBytes` (32 MB), `run.timeoutMs` (600000).
 
-Override theo từng repo đặt ở `<repo>/.token-diet.json`; file này thắng file user.
+Override theo từng repo đặt ở `<repo>/.zero-token.json`; file này thắng file user.
 
 ## Panel (thử nghiệm)
 
-Plugin khai báo một MCP App surface (`ui://token-diet/panel.html`) hiển thị ledger ở panel bên phải: token giữ khỏi context là số chính, kèm trung bình mỗi file, số lần chặn, số file, tool call, lượng output trong 24 giờ và các lần chặn gần nhất kèm kích thước. Không tốn token hội thoại. Nút **Reload** và mục auto-refresh (tắt / 3s / 5s / 10s / 30s, được ghi nhớ) gọi tool dữ liệu qua cầu MCP Apps, nên số liệu cập nhật tại chỗ mà không cần tải lại trang. Các lần refresh không ghi vào ledger.
+Plugin khai báo một MCP App surface (`ui://zero-token/panel.html`) hiển thị ledger ở panel bên phải: token giữ khỏi context là số chính, kèm trung bình mỗi file, số lần chặn, số file, tool call, lượng output trong 24 giờ và các lần chặn gần nhất kèm kích thước. Không tốn token hội thoại. Nút **Reload** và mục auto-refresh (tắt / 3s / 5s / 10s / 30s, được ghi nhớ) gọi tool dữ liệu qua cầu MCP Apps, nên số liệu cập nhật tại chỗ mà không cần tải lại trang. Các lần refresh không ghi vào ledger.
 
-ZCode coi surface của plugin là **panel mở thủ công**: nó không tự mở, kể cả khi kết quả tool yêu cầu inline. Plugin tài liệu chính thức cũng vậy. Mở panel **Token Diet** một lần từ panel bên phải; sau đó chỉ tốn một click và không tốn token hội thoại. `/saved` luôn trả báo cáo text, nên không mất gì khi panel đóng.
+ZCode coi surface của plugin là **panel mở thủ công**: nó không tự mở, kể cả khi kết quả tool yêu cầu inline. Plugin tài liệu chính thức cũng vậy. Mở panel **Zero Token** một lần từ panel bên phải; sau đó chỉ tốn một click và không tốn token hội thoại. `/saved` luôn trả báo cáo text, nên không mất gì khi panel đóng.
 
 ## Ledger tiết kiệm
 
-Mỗi lần guard chặn và mỗi lần gọi MCP tool được ghi vào `~/.zcode/token-diet/ledger.jsonl` (đổi thư mục bằng `TOKEN_DIET_DATA`). `/saved [số ngày]` tổng hợp lại. Ghi ledger tốn ~0,35 ms; file local, tự xoay vòng ở 5 MB.
+Mỗi lần guard chặn và mỗi lần gọi MCP tool được ghi vào `~/.zcode/zero-token/ledger.jsonl` (đổi thư mục bằng `TOKEN_DIET_DATA`). `/saved [số ngày]` tổng hợp lại. Ghi ledger tốn ~0,35 ms; file local, tự xoay vòng ở 5 MB.
 
 ## Định hướng tiếp theo
 

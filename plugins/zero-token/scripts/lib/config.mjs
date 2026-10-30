@@ -4,8 +4,8 @@
 // Precedence (later wins):
 //   1. DEFAULT_CONFIG below
 //   2. <plugin>/scripts/config.json       (shipped defaults)
-//   3. ~/.zcode/token-diet.config.json    (or $TOKEN_DIET_CONFIG)
-//   4. <workspace>/.token-diet.json       (per-repository overrides)
+//   3. ~/.zcode/zero-token.config.json    (or $ZERO_TOKEN_CONFIG)
+//   4. <workspace>/.zero-token.json       (per-repository overrides)
 //
 // Hooks must never print to stdout while loading config, so every failure is
 // silent and falls back to the previous layer.
@@ -73,12 +73,15 @@ export function mergeConfig(base, extra) {
 }
 
 export function userConfigPath() {
+  if (process.env.ZERO_TOKEN_CONFIG) return process.env.ZERO_TOKEN_CONFIG;
   if (process.env.TOKEN_DIET_CONFIG) return process.env.TOKEN_DIET_CONFIG;
-  const sharedCfg = path.join(os.homedir(), ".token-diet", "config.json");
+  const sharedCfg = path.join(os.homedir(), ".zero-token", "config.json");
   if (fs.existsSync(sharedCfg)) return sharedCfg;
-  const zcodeCfg = path.join(os.homedir(), ".zcode", "token-diet.config.json");
+  const zcodeCfg = path.join(os.homedir(), ".zcode", "zero-token.config.json");
   if (fs.existsSync(zcodeCfg)) return zcodeCfg;
-  const agCfg = path.join(os.homedir(), ".gemini", "token-diet.config.json");
+  const oldZcodeCfg = path.join(os.homedir(), ".zcode", "token-diet.config.json");
+  if (fs.existsSync(oldZcodeCfg)) return oldZcodeCfg;
+  const agCfg = path.join(os.homedir(), ".gemini", "zero-token.config.json");
   if (fs.existsSync(agCfg)) return agCfg;
   return zcodeCfg;
 }
@@ -88,7 +91,7 @@ export function loadConfig(scriptDir, cwd) {
   const user = readJson(userConfigPath());
   if (user) cfg = mergeConfig(cfg, user);
   if (cwd) {
-    const workspace = readJson(path.join(cwd, ".token-diet.json"));
+    const workspace = readJson(path.join(cwd, ".zero-token.json")) || readJson(path.join(cwd, ".token-diet.json"));
     if (workspace) cfg = mergeConfig(cfg, workspace);
   }
   return cfg;

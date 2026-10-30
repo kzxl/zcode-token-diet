@@ -1,15 +1,15 @@
-# Universal Installer & Linker for token-diet (Antigravity & ZCode)
+# Universal Installer & Linker for zero-token (Antigravity & ZCode)
 [CmdletBinding()]
 param(
     [switch]$Uninstall
 )
 
 $repoRoot = $PSScriptRoot
-$pluginSrc = Join-Path $repoRoot "plugins\token-diet"
+$pluginSrc = Join-Path $repoRoot "plugins\zero-token"
 
 $targets = @(
-    (Join-Path $env:USERPROFILE ".gemini\config\plugins\token-diet"),
-    (Join-Path $env:USERPROFILE ".zcode\plugins\token-diet")
+    (Join-Path $env:USERPROFILE ".gemini\config\plugins\zero-token"),
+    (Join-Path $env:USERPROFILE ".zcode\plugins\zero-token")
 )
 
 if ($Uninstall) {
@@ -24,11 +24,11 @@ if ($Uninstall) {
             }
         }
     }
-    Write-Host "token-diet unlinked successfully." -ForegroundColor Green
+    Write-Host "zero-token unlinked successfully." -ForegroundColor Green
     exit 0
 }
 
-Write-Host "Linking token-diet from $pluginSrc..." -ForegroundColor Cyan
+Write-Host "Linking zero-token from $pluginSrc..." -ForegroundColor Cyan
 
 foreach ($target in $targets) {
     $parent = Split-Path $target -Parent
@@ -57,4 +57,4 @@ foreach ($target in $targets) {
     }
 }
 
-Write-Host "`ntoken-diet is now active across both Antigravity and ZCode!" -ForegroundColor Green
+Write-Host "`nzero-token is now active across both Antigravity and ZCode!" -ForegroundColor Green

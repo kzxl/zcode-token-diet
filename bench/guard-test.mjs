@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const guard = path.join(root, "plugins", "token-diet", "scripts", "guard.mjs");
-const loopBreaker = path.join(root, "plugins", "token-diet", "scripts", "loop-breaker.mjs");
+const guard = path.join(root, "plugins", "zero-token", "scripts", "guard.mjs");
+const loopBreaker = path.join(root, "plugins", "zero-token", "scripts", "loop-breaker.mjs");
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-test-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zero-token-test-"));
 const dataDir = path.join(tmp, "data");
 process.env.TOKEN_DIET_DATA = dataDir;
 const big = path.join(tmp, "Big.cs");
@@ -96,7 +96,7 @@ check(
 
 const workspace = path.join(tmp, "workspace");
 fs.mkdirSync(workspace, { recursive: true });
-fs.writeFileSync(path.join(workspace, ".token-diet.json"), JSON.stringify({ guard: { read: { maxBytes: 10 } } }));
+fs.writeFileSync(path.join(workspace, ".zero-token.json"), JSON.stringify({ guard: { read: { maxBytes: 10 } } }));
 const wsPayload = { hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path: path.join(workspace, "file.cs") }, cwd: workspace, session_id: "test" };
 fs.writeFileSync(path.join(workspace, "file.cs"), "class A {}\n");
 check("workspace config applies -> small file denied", run(guard, wsPayload).out.includes("deny"));
@@ -104,7 +104,7 @@ check("workspace config applies -> small file denied", run(guard, wsPayload).out
 console.log("ledger");
 const ledgerFile = path.join(dataDir, "ledger.jsonl");
 check("deny is recorded", fs.existsSync(ledgerFile) && fs.readFileSync(ledgerFile, "utf8").includes('"event":"read"'));
-const { savingsReport } = await import("../plugins/token-diet/scripts/lib/ledger.mjs");
+const { savingsReport } = await import("../plugins/zero-token/scripts/lib/ledger.mjs");
 const report = savingsReport(1).text;
 check("savings report counts blocked calls", /Blocked calls: [1-9]/.test(report), report.split("\n")[2]);
 check("savings report mentions blocked bytes", /bytes kept out of context/.test(report));

@@ -1,16 +1,16 @@
 {
-  "name": "token-diet",
+  "name": "zero-token",
   "version": "0.6.0",
   "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
   "author": {
-    "name": "local"
+    "name": "kzxl"
   },
   "skills": "skills",
   "agents": "agents",
   "commands": "commands",
   "hooks": "hooks/hooks.json",
   "mcpServers": {
-    "token-diet": {
+    "zero-token": {
       "type": "stdio",
       "command": "node",
       "args": [
@@ -24,14 +24,14 @@
   "ui": {
     "surfaces": [
       {
-        "id": "token-diet",
+        "id": "zero-token",
         "title": {
-          "en": "Token Diet",
-          "zh-CN": "上下文节食"
+          "en": "Zero Token",
+          "zh-CN": "零冗余 Token"
         },
         "icon": "gauge",
-        "server": "token-diet",
-        "resourceUri": "ui://token-diet/panel.html",
+        "server": "zero-token",
+        "resourceUri": "ui://zero-token/panel.html",
         "availability": "session"
       }
     ]

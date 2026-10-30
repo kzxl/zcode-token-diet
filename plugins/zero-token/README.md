@@ -1,4 +1,4 @@
-# token-diet
+# zero-token
 
 Cuts the tokens a coding session spends on file dumps, unbounded greps and raw build logs. It never compresses history or rewrites tool output — ZCode hooks cannot do that. It makes the calls themselves cheap.
 
@@ -7,23 +7,23 @@ Cuts the tokens a coding session spends on file dumps, unbounded greps and raw b
 | Component | What it does |
 |---|---|
 | MCP tools `outline`, `search`, `build`, `run`, `diet` | Structure-only reads, capped search, compact build (MSBuild for legacy .NET Framework, dotnet for SDK-style), build/test/lint for other ecosystems, baseline context report |
-| Agent `token-diet:scout` | Read-only subagent that returns `file:line` pointers instead of code |
+| Agent `zero-token:scout` | Read-only subagent that returns `file:line` pointers instead of code |
 | PreToolUse hook | Blocks unbounded `Read`, `cat` of large files, `grep -r` without a cap, `git log -p` without `-n` |
 | PostToolUse hook | Warns once when the same tool call runs three times with identical input |
-| Skill `token-diet` | The behaviour rules that make the model choose the cheap path |
+| Skill `zero-token` | The behaviour rules that make the model choose the cheap path |
 | Commands `/build`, `/diet`, `/saved` | Manual entry points: compact build, baseline report, savings ledger |
-| Panel `ui://token-diet/panel.html` | Experimental side-panel dashboard of the ledger (no conversation tokens) |
+| Panel `ui://zero-token/panel.html` | Experimental side-panel dashboard of the ledger (no conversation tokens) |
 
 Language coverage: the guard is language-agnostic; `search` scans any text file, decodes UTF-16 (BOM or sniffed) and honours `.gitignore`; `outline` has declaration heuristics for C-family, JS/TS, Python, Ruby, PHP, Go, Rust, Swift/Kotlin, Scala, Dart, shell, Lua, Perl and SQL; `build` is .NET only; `run` covers npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest.
 
 ## Install
 
 ```text
-/plugin marketplace add kzxl/zcode-token-diet
-/plugin install token-diet@zcode-token-diet
+/plugin marketplace add kzxl/zcode-zero-token
+/plugin install zero-token@zcode-zero-token
 ```
 
-Start a new task afterwards. Check **Settings → Plugin Management → token-diet** to confirm the tools, the agent and both hooks are runnable.
+Start a new task afterwards. Check **Settings → Plugin Management → zero-token** to confirm the tools, the agent and both hooks are runnable.
 
 ## Tuning
 
@@ -43,7 +43,7 @@ Edit `scripts/config.json`:
 
 Changes take effect on the next tool call; no restart needed.
 
-The shipped `scripts/config.json` is replaced when the plugin updates. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); the files are deep-merged and user values win.
+The shipped `scripts/config.json` is replaced when the plugin updates. Put personal overrides in `~/.zcode/zero-token.config.json` (or the path in `TOKEN_DIET_CONFIG`); the files are deep-merged and user values win.
 
 ## Honest limits
 
@@ -56,7 +56,7 @@ The shipped `scripts/config.json` is replaced when the plugin updates. Put perso
 
 ## Ledger
 
-Blocked calls and MCP tool calls are appended to `~/.zcode/token-diet/ledger.jsonl` (override with `TOKEN_DIET_DATA`). `/saved [days]` summarises it.
+Blocked calls and MCP tool calls are appended to `~/.zcode/zero-token/ledger.jsonl` (override with `TOKEN_DIET_DATA`). `/saved [days]` summarises it.
 
 ## Roadmap
 

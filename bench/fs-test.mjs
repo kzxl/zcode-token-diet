@@ -4,10 +4,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { search, outline } from "../plugins/token-diet/scripts/lib/scan.mjs";
-import { clearCaches } from "../plugins/token-diet/scripts/lib/fsindex.mjs";
+import { search, outline } from "../plugins/zero-token/scripts/lib/scan.mjs";
+import { clearCaches } from "../plugins/zero-token/scripts/lib/fsindex.mjs";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-fs-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zero-token-fs-"));
 const write = (name, text, encoding = "utf8") => {
   const p = path.join(tmp, name);
   fs.mkdirSync(path.dirname(p), { recursive: true });

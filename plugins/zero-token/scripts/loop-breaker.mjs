@@ -45,7 +45,7 @@ async function main() {
     .digest("hex")
     .slice(0, 16);
 
-  const dir = path.join(os.tmpdir(), "token-diet");
+  const dir = path.join(os.tmpdir(), "zero-token");
   const file = path.join(dir, `loops-${session}.json`);
   let state = {};
   try {
@@ -78,7 +78,7 @@ async function main() {
         hookSpecificOutput: {
           hookEventName: "PostToolUse",
           additionalContext:
-            `token-diet: this exact ${tool} call has now run ${threshold} times with identical input. ` +
+            `zero-token: this exact ${tool} call has now run ${threshold} times with identical input. ` +
             `Repeating it will not produce a different result. Change the input, narrow the target, or report what is missing instead of retrying.`,
         },
       })

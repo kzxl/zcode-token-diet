@@ -1,4 +1,4 @@
-# ZCode Token Diet
+# ZCode Zero Token
 
 A ZCode plugin that stops a coding session from flooding its own context with whole-file reads, unbounded `grep -r`, and raw build logs — without compressing history or rewriting tool output.
 
@@ -60,13 +60,13 @@ The guard also never auto-approves a tool. It can only deny with a reason, so yo
 |---|---|
 | MCP tool `outline` | Type and method signatures with line numbers for a file or directory. Replaces a blind read. |
 | MCP tool `search` | Literal or `/regex/` search, returns `file:line` plus 2 context lines, capped at 30 matches / 8 KB. |
-| MCP tool `build` | Runs MSBuild or `dotnet build`, keeps the full log in `.token-diet/build.log`, returns errors plus warnings grouped by code. |
+| MCP tool `build` | Runs MSBuild or `dotnet build`, keeps the full log in `.zero-token/build.log`, returns errors plus warnings grouped by code. |
 | MCP tool `run` | Build/test/lint for npm/pnpm/yarn, cargo, go, maven, gradle, make and pytest, with per-ecosystem error extraction. |
 | MCP tool `diet` | Reports which installed skills and MCP schemas cost context every session. |
-| Agent `token-diet:scout` | Read-only subagent for questions spanning many files. Returns `file:line` pointers, never code. |
+| Agent `zero-token:scout` | Read-only subagent for questions spanning many files. Returns `file:line` pointers, never code. |
 | Hook `PreToolUse` | Blocks unbound `Read` of files over 128 KB, `cat`/`Get-Content` of large files, `grep -r` without `-l`/`-m`, `git log -p` without `-n`. |
 | Hook `PostToolUse` | Warns once when the same tool call repeats three times with identical input. |
-| Skill `token-diet` | The behaviour rules that make the cheap path the default. |
+| Skill `zero-token` | The behaviour rules that make the cheap path the default. |
 | Commands `/build`, `/diet`, `/saved` | Manual entry points: compact build, baseline report, savings ledger. |
 
 ## Install
@@ -74,17 +74,17 @@ The guard also never auto-approves a tool. It can only deny with a reason, so yo
 In ZCode:
 
 ```text
-/plugin marketplace add kzxl/zcode-token-diet
-/plugin install token-diet@zcode-token-diet
+/plugin marketplace add kzxl/zcode-zero-token
+/plugin install zero-token@zcode-zero-token
 ```
 
-Or use **Plugin Marketplace → + → Add Plugin Marketplace**, paste `kzxl/zcode-token-diet`, then install **Token Diet** from **Personal → zcode-token-diet**.
+Or use **Plugin Marketplace → + → Add Plugin Marketplace**, paste `kzxl/zcode-zero-token`, then install **Zero Token** from **Personal → zcode-zero-token**.
 
 Start a new task after installing. ZCode loads skills, MCP tools, agents and hooks at session start.
 
 ### Make it the default
 
-The plugin ships a skill, so it activates when selected. To apply the rules even when the skill is not chosen, copy [`plugins/token-diet/AGENTS.md.sample`](plugins/token-diet/AGENTS.md.sample) into `~/.zcode/AGENTS.md` (or a repo's `AGENTS.md`). It costs roughly 260 tokens per session; keep it if it changes behaviour, drop it if it does not.
+The plugin ships a skill, so it activates when selected. To apply the rules even when the skill is not chosen, copy [`plugins/zero-token/AGENTS.md.sample`](plugins/zero-token/AGENTS.md.sample) into `~/.zcode/AGENTS.md` (or a repo's `AGENTS.md`). It costs roughly 260 tokens per session; keep it if it changes behaviour, drop it if it does not.
 
 ## Build toolchain
 
@@ -103,7 +103,7 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 
 ## Configuration
 
-`plugins/token-diet/scripts/config.json`:
+`plugins/zero-token/scripts/config.json`:
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -129,17 +129,17 @@ MSBuild is located in this order: `build.msbuildPath`, VS 2019 Build Tools, Visu
 
 Edits take effect on the next tool call.
 
-The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/token-diet.config.json` (or the path in `TOKEN_DIET_CONFIG`); per-repository overrides go in `<repo>/.token-diet.json`. Files are deep-merged, the most specific wins.
+The shipped `scripts/config.json` lives in the installed plugin and is replaced on update. Put personal overrides in `~/.zcode/zero-token.config.json` (or the path in `TOKEN_DIET_CONFIG`); per-repository overrides go in `<repo>/.zero-token.json`. Files are deep-merged, the most specific wins.
 
 ## Panel (experimental)
 
-The plugin declares an MCP App surface (`ui://token-diet/panel.html`) that renders the ledger in ZCode's side panel: tokens kept out of context as the headline, the average per file block, blocks, distinct files, tool calls and tool output for the last 24 hours, plus the most recent blocks with their size. It costs no conversation tokens. A **Reload** button and an auto-refresh interval (off / 3s / 5s / 10s / 30s, remembered) call the panel data tool through the MCP Apps bridge, so the numbers update in place without reloading the page. Panel refreshes are not written to the ledger.
+The plugin declares an MCP App surface (`ui://zero-token/panel.html`) that renders the ledger in ZCode's side panel: tokens kept out of context as the headline, the average per file block, blocks, distinct files, tool calls and tool output for the last 24 hours, plus the most recent blocks with their size. It costs no conversation tokens. A **Reload** button and an auto-refresh interval (off / 3s / 5s / 10s / 30s, remembered) call the panel data tool through the MCP Apps bridge, so the numbers update in place without reloading the page. Panel refreshes are not written to the ledger.
 
-ZCode treats plugin surfaces as **manually opened panels**: it does not auto-open them, even when a tool result requests inline display. The official document plugins behave the same way. Open the **Token Diet** panel once from the side panel; after that it is one click, and it costs no conversation tokens. `/saved` always returns the text report, so nothing is lost if the panel is closed. The inline metadata is kept for hosts that support it.
+ZCode treats plugin surfaces as **manually opened panels**: it does not auto-open them, even when a tool result requests inline display. The official document plugins behave the same way. Open the **Zero Token** panel once from the side panel; after that it is one click, and it costs no conversation tokens. `/saved` always returns the text report, so nothing is lost if the panel is closed. The inline metadata is kept for hosts that support it.
 
 ## Savings ledger
 
-Every blocked call and every MCP tool call is appended to `~/.zcode/token-diet/ledger.jsonl` (override the directory with `TOKEN_DIET_DATA`). `/saved [days]` summarises it. The ledger is local, append-only, rotates once at 5 MB, and an append costs about 0.35 ms. It records what the plugin saw, not provider-reported usage.
+Every blocked call and every MCP tool call is appended to `~/.zcode/zero-token/ledger.jsonl` (override the directory with `TOKEN_DIET_DATA`). `/saved [days]` summarises it. The ledger is local, append-only, rotates once at 5 MB, and an append costs about 0.35 ms. It records what the plugin saw, not provider-reported usage.
 
 ## Measured on real repositories
 
@@ -183,7 +183,7 @@ On Windows, prefix with the variables in PowerShell (`$env:TOKEN_DIET_REAL_SLN="
 
 ## Safety
 
-- Hooks execute as your user on every matching tool call. Read [`guard.mjs`](plugins/token-diet/scripts/guard.mjs) and [`loop-breaker.mjs`](plugins/token-diet/scripts/loop-breaker.mjs) before enabling; both are dependency-free and under 200 lines.
+- Hooks execute as your user on every matching tool call. Read [`guard.mjs`](plugins/zero-token/scripts/guard.mjs) and [`loop-breaker.mjs`](plugins/zero-token/scripts/loop-breaker.mjs) before enabling; both are dependency-free and under 200 lines.
 - The guard denies, it never approves. Permission prompts still happen.
 - The MCP server is a single Node process; `outline`/`search` only read, `build` and `run` execute the project's own build/test commands, `diet` only reads `~/.zcode` metadata.
 - Nothing leaves your machine.

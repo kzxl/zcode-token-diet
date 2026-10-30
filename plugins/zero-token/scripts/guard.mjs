@@ -152,10 +152,10 @@ async function main() {
         const suggest = Math.min(r.suggestLines ?? maxLimitLines, maxLimitLines);
         const compact = budget < maxBytes ? ` It looks minified, so the read budget is ${Math.round(budget / 1024)} KB.` : "";
         const reason = tooBig
-          ? `token-diet blocked ${tool} with limit=${limit}: on ${name} (${kb} KB) that is effectively a full read (~${approxK}k tokens).${compact} ` +
-            `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool.`
-          : `token-diet blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens.${compact} ` +
-            `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool; ` +
+          ? `zero-token blocked ${tool} with limit=${limit}: on ${name} (${kb} KB) that is effectively a full read (~${approxK}k tokens).${compact} ` +
+            `Use limit<=${maxLimitLines} with an offset, or the zero-token "outline" tool.`
+          : `zero-token blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens.${compact} ` +
+            `Use limit<=${maxLimitLines} with an offset, or the zero-token "outline" tool; ` +
             `if you have no MCP tools, locate what you need with grep -n -m 20 "<symbol>" ${name}.`;
         deny(reason, { event: "read", bytes: size, file: name });
       }
@@ -192,29 +192,29 @@ async function main() {
         /\|\s*head\b/.test(execLike);
       if (recursiveGrep && !bounded) {
         deny(
-          `token-diet blocked an unbounded recursive grep. Add -m 5 or -l, pipe through head, ` +
-            `or use the token-diet "search" tool (returns file:line with 2 context lines, capped at 8 KB).`,
+          `zero-token blocked an unbounded recursive grep. Add -m 5 or -l, pipe through head, ` +
+            `or use the zero-token "search" tool (returns file:line with 2 context lines, capped at 8 KB).`,
           { event: "grep" }
         );
       }
       if (recursiveFindstr) {
-        deny(`token-diet blocked "findstr /s" without /m. Add /m, or use the token-diet "search" tool.`, { event: "grep" });
+        deny(`zero-token blocked "findstr /s" without /m. Add /m, or use the zero-token "search" tool.`, { event: "grep" });
       }
       if (rg && !rgBounded) {
-        deny(`token-diet blocked rg without a cap. Add -l, -m 5, or pipe through head; or use the token-diet "search" tool.`, { event: "grep" });
+        deny(`zero-token blocked rg without a cap. Add -l, -m 5, or pipe through head; or use the zero-token "search" tool.`, { event: "grep" });
       }
     }
 
     if (b.denyPatchLog !== false) {
       if (/\bgit\s+log\b/.test(execLike) && /(\s-p\b|--patch)/.test(execLike) && !/(-n\s*\d|--max-count)/.test(execLike)) {
-        deny(`token-diet blocked "git log --patch" without a limit. Add -n 20, or use --stat for a summary.`, { event: "git-log" });
+        deny(`zero-token blocked "git log --patch" without a limit. Add -n 20, or use --stat for a summary.`, { event: "git-log" });
       }
     }
 
     if (b.denyVerboseBuild === true) {
       if (/\b(dotnet\s+build|msbuild)\b/.test(execLike) && !/(-v:\s*[qm]\b|--verbosity\s+(quiet|minimal))/.test(execLike)) {
         deny(
-          `token-diet: verbose build logs are huge. Use the token-diet "build" tool (returns only errors and grouped warnings), ` +
+          `zero-token: verbose build logs are huge. Use the zero-token "build" tool (returns only errors and grouped warnings), ` +
             `or add -v:q.`,
           { event: "build" }
         );
@@ -230,10 +230,10 @@ async function main() {
         if (size > budget) {
           const isCode = /\.(cs|ts|tsx|js|mjs|cjs|java|kt|py|go|rb|php|cpp|h|hpp|c|xaml)$/i.test(p);
           deny(
-            `token-diet blocked dumping ${path.basename(p)} (${Math.round(size / 1024)} KB) to the terminal. ` +
+            `zero-token blocked dumping ${path.basename(p)} (${Math.round(size / 1024)} KB) to the terminal. ` +
               (isCode
-                ? `Use the token-diet "outline" tool first, or head -n 100.`
-                : `Read a slice instead: head -n 100, sed -n '1,100p', or the token-diet "search" tool.`),
+                ? `Use the zero-token "outline" tool first, or head -n 100.`
+                : `Read a slice instead: head -n 100, sed -n '1,100p', or the zero-token "search" tool.`),
             { event: "cat", bytes: size, file: path.basename(p) }
           );
         }
@@ -248,8 +248,8 @@ async function main() {
       const budget = effectiveMax(full, size, b.catMaxBytes ?? 131072);
       if (size > budget) {
         deny(
-          `token-diet blocked ReadAllText on ${path.basename(readAll[1])} (${Math.round(size / 1024)} KB). ` +
-            `Read a slice instead: Get-Content -TotalCount 100, or the token-diet "outline" tool.`,
+          `zero-token blocked ReadAllText on ${path.basename(readAll[1])} (${Math.round(size / 1024)} KB). ` +
+            `Read a slice instead: Get-Content -TotalCount 100, or the zero-token "outline" tool.`,
           { event: "readall", bytes: size, file: path.basename(readAll[1]) }
         );
       }

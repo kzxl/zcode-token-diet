@@ -12,8 +12,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { search, outline } from "../plugins/token-diet/scripts/lib/scan.mjs";
-import { collectFiles, clearCaches, decodeBuffer } from "../plugins/token-diet/scripts/lib/fsindex.mjs";
+import { search, outline } from "../plugins/zero-token/scripts/lib/scan.mjs";
+import { collectFiles, clearCaches, decodeBuffer } from "../plugins/zero-token/scripts/lib/fsindex.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const CODE = new Set([

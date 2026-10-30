@@ -1,12 +1,12 @@
 {
-  "name": "token-diet",
-  "displayName": "Token Diet",
+  "name": "zero-token",
+  "displayName": "Zero Token",
   "description": "Compact-context tools and guards: code outline, capped search, compact .NET builds, oversized-read blocking, and token budgeting.",
   "version": "0.6.0",
   "author": "kzxl",
   "suggestedPrompts": [
-    "/token-diet on",
-    "/token-diet ultra",
-    "/token-diet status"
+    "/zero-token on",
+    "/zero-token ultra",
+    "/zero-token status"
   ]
 }

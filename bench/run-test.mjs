@@ -5,9 +5,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { detectEcosystem, planAction, compactCommandLog, runAction } from "../plugins/token-diet/scripts/lib/run.mjs";
+import { detectEcosystem, planAction, compactCommandLog, runAction } from "../plugins/zero-token/scripts/lib/run.mjs";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-run-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zero-token-run-"));
 function mk(name, files) {
   const dir = path.join(tmp, name);
   fs.mkdirSync(dir, { recursive: true });

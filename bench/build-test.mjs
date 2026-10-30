@@ -2,7 +2,7 @@
 // Build-log compaction tests: code-less errors, deduplication, and the
 // failed-with-no-error fallback.
 
-import { compactBuildLog } from "../plugins/token-diet/scripts/lib/build.mjs";
+import { compactBuildLog } from "../plugins/zero-token/scripts/lib/build.mjs";
 
 let failures = 0;
 function check(name, cond, detail = "") {

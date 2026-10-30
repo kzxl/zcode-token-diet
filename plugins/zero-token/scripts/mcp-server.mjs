@@ -14,7 +14,7 @@ import { appendLedger, readLedger, savingsReport } from "./lib/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const config = loadConfig(here, process.cwd());
-const PANEL_URI = "ui://token-diet/panel.html";
+const PANEL_URI = "ui://zero-token/panel.html";
 let version = "0.1.0";
 try {
   version = JSON.parse(fs.readFileSync(path.join(here, "..", ".zcode-plugin", "plugin.json"), "utf8")).version;
@@ -74,7 +74,7 @@ function panelHtml() {
 
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Token Diet</title>
+<title>Zero Token</title>
 <style>
 :root{color-scheme:light dark;--fg:#1b1b1f;--mut:#6b6b76;--bg:#fff;--card:#f6f6f8;--line:#e6e6ea;--accent:#2f6f4f}
 @media (prefers-color-scheme:dark){:root{--fg:#e8e8ee;--mut:#9a9aa8;--bg:#1b1b1f;--card:#24242b;--line:#33333d;--accent:#7fd3a6}}
@@ -106,7 +106,7 @@ li b{flex:none;color:var(--accent);font-weight:600;font-variant-numeric:tabular-
 .foot{margin-top:14px;padding-top:10px;border-top:1px solid var(--line);color:var(--mut);font-size:10.5px}
 </style></head>
 <body>
-<h1>Token Diet</h1>
+<h1>Zero Token</h1>
 <div class="sub">Last 24 hours · updated ${updated}</div>
 <div class="bar">
   <button id="reload" type="button">Reload</button>
@@ -210,7 +210,7 @@ li b{flex:none;color:var(--accent);font-weight:600;font-variant-numeric:tabular-
     });
   }
   request("ui/initialize", {
-    appInfo: { name: "token-diet", version: "${version}" },
+    appInfo: { name: "zero-token", version: "${version}" },
     appCapabilities: {},
     protocolVersion: "2025-11-21"
   }).then(function () {
@@ -361,7 +361,7 @@ rl.on("line", async (line) => {
     result(id, {
       protocolVersion: params?.protocolVersion || "2024-11-05",
       capabilities: { tools: {}, resources: {} },
-      serverInfo: { name: "token-diet", version },
+      serverInfo: { name: "zero-token", version },
     });
     return;
   }
@@ -378,7 +378,7 @@ rl.on("line", async (line) => {
       resources: [
         {
           uri: PANEL_URI,
-          name: "Token Diet",
+          name: "Zero Token",
           description: "Blocked calls and tool output from the local ledger",
           mimeType: "text/html;profile=mcp-app",
         },
@@ -446,7 +446,7 @@ rl.on("line", async (line) => {
       result(id, payload);
     } catch (e) {
       result(id, {
-        content: [{ type: "text", text: `token-diet ${name} failed: ${e.message}` }],
+        content: [{ type: "text", text: `zero-token ${name} failed: ${e.message}` }],
         isError: true,
       });
     }

@@ -243,7 +243,7 @@ export function runBuild(opts = {}, cfg = {}) {
     return {
       text:
         `build: this is a legacy .NET Framework project (${path.basename(project)}), which needs MSBuild.exe, ` +
-        `and none was found. Set "build.msbuildPath" in the token-diet config, or install Visual Studio Build Tools. ` +
+        `and none was found. Set "build.msbuildPath" in the zero-token config, or install Visual Studio Build Tools. ` +
         `Do not run dotnet build on it.`,
     };
   }
@@ -259,7 +259,7 @@ export function runBuild(opts = {}, cfg = {}) {
   });
 
   const text = `${res.stdout || ""}\n${res.stderr || ""}${res.error ? `\n${res.error.message}` : ""}`;
-  const logDir = path.join(process.cwd(), ".token-diet");
+  const logDir = path.join(process.cwd(), ".zero-token");
   const logFile = path.join(logDir, "build.log");
   try {
     fs.mkdirSync(logDir, { recursive: true });

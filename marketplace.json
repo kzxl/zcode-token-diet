@@ -1,18 +1,18 @@
 {
-  "name": "token-diet",
+  "name": "zero-token",
   "owner": {
     "name": "kzxl",
     "url": "https://github.com/kzxl"
   },
   "plugins": [
     {
-      "name": "token-diet",
-      "source": "./plugins/token-diet",
+      "name": "zero-token",
+      "source": "./plugins/zero-token",
       "version": "0.6.0",
       "description": "Compact-context tools and guards: code outline, capped search, compact builds, oversized-read blocking, repeated-call detection.",
-      "displayName": "Token Diet",
+      "displayName": "Zero Token",
       "displayName_i18n": {
-        "zh-CN": "上下文节食"
+        "zh-CN": "零冗余 Token"
       },
       "description_i18n": {
         "en": "Cuts the tokens a coding session spends on file dumps, unbounded greps and raw build logs.",
@@ -25,7 +25,9 @@
         "hooks",
         "mcp",
         "build",
-        "performance"
+        "performance",
+        "antigravity",
+        "zcode"
       ]
     }
   ]

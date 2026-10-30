@@ -10,11 +10,11 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const guard = path.join(root, "plugins", "token-diet", "scripts", "guard.mjs");
-const loop = path.join(root, "plugins", "token-diet", "scripts", "loop-breaker.mjs");
+const guard = path.join(root, "plugins", "zero-token", "scripts", "guard.mjs");
+const loop = path.join(root, "plugins", "zero-token", "scripts", "loop-breaker.mjs");
 const N = Number(process.argv[2] || 10);
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "token-diet-hook-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zero-token-hook-"));
 const data = path.join(tmp, "data");
 const big = path.join(tmp, "Big.cs");
 const small = path.join(tmp, "Small.cs");
@@ -55,7 +55,7 @@ for (const [name, script, payload] of cases) {
 }
 
 // Ledger append cost without spawn overhead.
-const { appendLedger } = await import("../plugins/token-diet/scripts/lib/ledger.mjs");
+const { appendLedger } = await import("../plugins/zero-token/scripts/lib/ledger.mjs");
 process.env.TOKEN_DIET_DATA = data;
 const t0 = process.hrtime.bigint();
 for (let i = 0; i < 1000; i++) appendLedger({ t: "tool", tool: "bench", outChars: 100, ms: 1 });

@@ -7,7 +7,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const server = process.argv[2] || path.join(here, "..", "plugins", "token-diet", "scripts", "mcp-server.mjs");
+const server = process.argv[2] || path.join(here, "..", "plugins", "zero-token", "scripts", "mcp-server.mjs");
 
 const child = spawn(process.execPath, [server], { stdio: ["pipe", "pipe", "pipe"] });
 let buf = "";
@@ -36,7 +36,7 @@ const rpc = (method, params) =>
   });
 
 await rpc("initialize", {});
-const read = await rpc("resources/read", { uri: "ui://token-diet/panel.html" });
+const read = await rpc("resources/read", { uri: "ui://zero-token/panel.html" });
 const html = read.result?.contents?.[0]?.text || "";
 const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!scriptMatch) {
@@ -99,7 +99,7 @@ function check(name, cond, detail = "") {
 await tick();
 const init = sent.find((m) => m.method === "ui/initialize");
 check("sends ui/initialize first", !!init && sent[0] === init);
-check("initialize carries appInfo and protocol", !!init && init.params?.appInfo?.name === "token-diet" && typeof init.params?.protocolVersion === "string");
+check("initialize carries appInfo and protocol", !!init && init.params?.appInfo?.name === "zero-token" && typeof init.params?.protocolVersion === "string");
 
 handlers.message({
   data: { jsonrpc: "2.0", id: init.id, result: { protocolVersion: "2025-11-21", hostInfo: {}, hostCapabilities: {}, hostContext: {} } },

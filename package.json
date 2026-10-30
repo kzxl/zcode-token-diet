@@ -1,15 +1,15 @@
 {
-  "name": "token-diet",
+  "name": "zero-token",
   "version": "0.6.0",
   "private": true,
   "type": "module",
-  "description": "Universal coding agent plugin (ZCode, Antigravity, Claude Code) that keeps sessions from flooding their context with whole-file reads, unbounded greps and raw build logs.",
+  "description": "Universal coding agent plugin (Antigravity, ZCode, Claude Code) that keeps sessions from flooding their context with whole-file reads, unbounded greps and raw build logs.",
   "license": "MIT",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "check": "node --check plugins/token-diet/scripts/guard.mjs && node --check plugins/token-diet/scripts/loop-breaker.mjs && node --check plugins/token-diet/scripts/mcp-server.mjs && node --check plugins/token-diet/scripts/lib/scan.mjs && node --check plugins/token-diet/scripts/lib/fsindex.mjs && node --check plugins/token-diet/scripts/lib/ledger.mjs && node --check plugins/token-diet/scripts/lib/build.mjs && node --check plugins/token-diet/scripts/lib/run.mjs && node --check plugins/token-diet/scripts/lib/diet.mjs && node --check plugins/token-diet/scripts/lib/config.mjs && node --check bench/measure.mjs && node --check bench/mcp-smoke.mjs && node --check bench/guard-test.mjs && node --check bench/lang-test.mjs && node --check bench/build-test.mjs && node --check bench/fs-test.mjs && node --check bench/run-test.mjs && node --check bench/repo-bench.mjs && node --check bench/hook-bench.mjs && node --check bench/panel-test.mjs",
+    "check": "node --check plugins/zero-token/scripts/guard.mjs && node --check plugins/zero-token/scripts/loop-breaker.mjs && node --check plugins/zero-token/scripts/mcp-server.mjs && node --check plugins/zero-token/scripts/lib/scan.mjs && node --check plugins/zero-token/scripts/lib/fsindex.mjs && node --check plugins/zero-token/scripts/lib/ledger.mjs && node --check plugins/zero-token/scripts/lib/build.mjs && node --check plugins/zero-token/scripts/lib/run.mjs && node --check plugins/zero-token/scripts/lib/diet.mjs && node --check plugins/zero-token/scripts/lib/config.mjs && node --check bench/measure.mjs && node --check bench/mcp-smoke.mjs && node --check bench/guard-test.mjs && node --check bench/lang-test.mjs && node --check bench/build-test.mjs && node --check bench/fs-test.mjs && node --check bench/run-test.mjs && node --check bench/repo-bench.mjs && node --check bench/hook-bench.mjs && node --check bench/panel-test.mjs",
     "test": "node bench/guard-test.mjs && node bench/lang-test.mjs && node bench/build-test.mjs && node bench/fs-test.mjs && node bench/run-test.mjs && node bench/panel-test.mjs",
     "smoke": "node bench/mcp-smoke.mjs",
     "bench": "node bench/measure.mjs"
