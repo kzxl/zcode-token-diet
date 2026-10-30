@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Read|Bash",
+        "matcher": "Read|Bash|read_file|run_command",
         "hooks": [
           {
             "type": "process",
@@ -16,7 +16,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|Read",
+        "matcher": "Bash|Read|run_command|read_file",
         "hooks": [
           {
             "type": "process",

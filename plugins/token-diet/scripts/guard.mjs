@@ -127,12 +127,17 @@ async function main() {
   const input = ev.tool_input || {};
 
   // --- Read without a usable limit on a large file --------------------------
-  if (tool === "Read") {
+  // Supports ZCode/Claude Code ("Read", file_path, limit) and Antigravity ("read_file", Path, StartLine, EndLine)
+  const isRead = tool === "Read" || tool === "read_file";
+  if (isRead) {
     const r = g.read || {};
     const maxBytes = r.maxBytes ?? 131072;
     const maxLimitLines = r.maxLimitLines ?? 400;
-    const p = input.file_path;
-    const limit = typeof input.limit === "number" ? input.limit : null;
+    const p = input.file_path || input.Path || input.path;
+    let limit = typeof input.limit === "number" ? input.limit : null;
+    if (limit === null && typeof input.StartLine === "number" && typeof input.EndLine === "number") {
+      limit = Math.max(1, input.EndLine - input.StartLine + 1);
+    }
     const hasLimit = limit !== null && limit > 0;
     const tooBig = hasLimit && limit > maxLimitLines;
     if (p && (!hasLimit || tooBig)) {
@@ -147,7 +152,7 @@ async function main() {
         const suggest = Math.min(r.suggestLines ?? maxLimitLines, maxLimitLines);
         const compact = budget < maxBytes ? ` It looks minified, so the read budget is ${Math.round(budget / 1024)} KB.` : "";
         const reason = tooBig
-          ? `token-diet blocked Read with limit=${limit}: on ${name} (${kb} KB) that is effectively a full read (~${approxK}k tokens).${compact} ` +
+          ? `token-diet blocked ${tool} with limit=${limit}: on ${name} (${kb} KB) that is effectively a full read (~${approxK}k tokens).${compact} ` +
             `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool.`
           : `token-diet blocked a full read of ${name} (${kb} KB, ~${lines} lines): roughly ${approxK}k tokens.${compact} ` +
             `Use limit<=${maxLimitLines} with an offset, or the token-diet "outline" tool; ` +
@@ -157,11 +162,13 @@ async function main() {
     }
   }
 
-  // --- Bash commands that dump unbounded output ----------------------------
-  if (tool === "Bash") {
+  // --- Bash / Terminal commands that dump unbounded output ------------------
+  // Supports ZCode/Claude Code ("Bash", command) and Antigravity ("run_command", CommandLine)
+  const isCommand = tool === "Bash" || tool === "run_command" || tool === "Terminal" || tool === "execute_command";
+  if (isCommand) {
     const b = g.bash || {};
     if (b.enabled === false) return;
-    const cmd = String(input.command || "").trim();
+    const cmd = String(input.command || input.CommandLine || input.cmd || "").trim();
     if (!cmd) return;
     const noHeredoc = stripHeredocs(cmd);
     const execLike = stripQuoted(noHeredoc);

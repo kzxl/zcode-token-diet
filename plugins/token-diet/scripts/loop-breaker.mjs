@@ -45,7 +45,7 @@ async function main() {
     .digest("hex")
     .slice(0, 16);
 
-  const dir = path.join(os.tmpdir(), "zcode-token-diet");
+  const dir = path.join(os.tmpdir(), "token-diet");
   const file = path.join(dir, `loops-${session}.json`);
   let state = {};
   try {

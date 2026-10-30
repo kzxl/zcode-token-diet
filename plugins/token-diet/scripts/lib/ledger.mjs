@@ -12,7 +12,11 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const CHARS_PER_TOKEN = 3.6;
 
 export function dataDir() {
-  return process.env.TOKEN_DIET_DATA || path.join(os.homedir(), ".zcode", "token-diet");
+  if (process.env.TOKEN_DIET_DATA) return process.env.TOKEN_DIET_DATA;
+  const shared = path.join(os.homedir(), ".token-diet");
+  const zcode = path.join(os.homedir(), ".zcode", "token-diet");
+  if (fs.existsSync(zcode) && !fs.existsSync(shared)) return zcode;
+  return shared;
 }
 
 export function ledgerPath() {

@@ -45,17 +45,24 @@ function run(script, payload, env = {}) {
 }
 
 const read = (file, extra = {}) => ({ hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path: file, ...extra }, cwd: root, session_id: "test" });
+const readFile = (file, extra = {}) => ({ hook_event_name: "PreToolUse", tool_name: "read_file", tool_input: { Path: file, ...extra }, cwd: root, session_id: "test" });
 const bash = (command) => ({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, cwd: root, session_id: "test" });
+const runCommand = (command) => ({ hook_event_name: "PreToolUse", tool_name: "run_command", tool_input: { CommandLine: command }, cwd: root, session_id: "test" });
 
-console.log("guard: Read");
+console.log("guard: Read (ZCode & Antigravity)");
 check("large file, no limit -> deny", run(guard, read(big)).out.includes("deny"));
 check("large file, limit=99999 -> deny", run(guard, read(big, { limit: 99999 })).out.includes("deny"));
 check("large file, limit=200 -> allow", run(guard, read(big, { limit: 200 })).out === "");
 check("small file, limit=99999 -> allow", run(guard, read(small, { limit: 99999 })).out === "");
+check("antigravity read_file: large file, no range -> deny", run(guard, readFile(big)).out.includes("deny"));
+check("antigravity read_file: large file, range=1000 -> deny", run(guard, readFile(big, { StartLine: 1, EndLine: 1000 })).out.includes("deny"));
+check("antigravity read_file: large file, range=200 -> allow", run(guard, readFile(big, { StartLine: 1, EndLine: 200 })).out === "");
 
-console.log("guard: Bash");
+console.log("guard: Bash & run_command");
 check("grep -rn -> deny", run(guard, bash("grep -rn OrderStatus .")).out.includes("deny"));
 check("grep -rn -m 5 -> allow", run(guard, bash("grep -rn -m 5 OrderStatus .")).out === "");
+check("antigravity run_command: grep -rn -> deny", run(guard, runCommand("grep -rn OrderStatus .")).out.includes("deny"));
+check("antigravity run_command: grep -rn -m 5 -> allow", run(guard, runCommand("grep -rn -m 5 OrderStatus .")).out === "");
 check("grep -rn -l -> allow", run(guard, bash("grep -rn -l OrderStatus .")).out === "");
 check("rg -> deny", run(guard, bash('rg "OrderStatus" .')).out.includes("deny"));
 check("rg -m 5 -> allow", run(guard, bash('rg -m 5 "OrderStatus" .')).out === "");

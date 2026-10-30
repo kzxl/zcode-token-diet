@@ -73,7 +73,14 @@ export function mergeConfig(base, extra) {
 }
 
 export function userConfigPath() {
-  return process.env.TOKEN_DIET_CONFIG || path.join(os.homedir(), ".zcode", "token-diet.config.json");
+  if (process.env.TOKEN_DIET_CONFIG) return process.env.TOKEN_DIET_CONFIG;
+  const sharedCfg = path.join(os.homedir(), ".token-diet", "config.json");
+  if (fs.existsSync(sharedCfg)) return sharedCfg;
+  const zcodeCfg = path.join(os.homedir(), ".zcode", "token-diet.config.json");
+  if (fs.existsSync(zcodeCfg)) return zcodeCfg;
+  const agCfg = path.join(os.homedir(), ".gemini", "token-diet.config.json");
+  if (fs.existsSync(agCfg)) return agCfg;
+  return zcodeCfg;
 }
 
 export function loadConfig(scriptDir, cwd) {
